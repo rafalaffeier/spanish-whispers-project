@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Play, Pause, StopCircle, MapPin, Clock, User } from 'lucide-react';
+import { Play, Pause, Briefcase, Clock } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import SignatureCanvas from '@/components/SignatureCanvas';
 import { TimesheetEntry, TimesheetStatus } from '@/types/timesheet';
@@ -192,45 +191,81 @@ const TimesheetControl: React.FC<TimesheetControlProps> = ({ employee, onUpdate,
     });
   };
 
+  // Mostrar información de inicio y tiempo trabajado
+  const renderTimeInfo = () => {
+    if (timesheet.startTime) {
+      const startTime = new Date(timesheet.startTime).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      return (
+        <div className="mt-4 space-y-1">
+          <p className="text-gray-700 text-lg">Comienzo a las: {startTime}</p>
+          <p className="text-gray-700 text-lg">Horas trabajadas : {elapsedTime} hs</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // Determinar qué botones mostrar según el estado
   const renderActionButtons = () => {
     switch (timesheet.status) {
       case 'not_started':
         return (
-          <Button onClick={startDay} className="w-full">
-            <Play className="mr-2 h-4 w-4" />
-            Iniciar Jornada
+          <Button 
+            onClick={startDay} 
+            className="w-full h-20 text-lg bg-green-100 hover:bg-green-200 text-green-800"
+          >
+            <Clock className="mr-2 h-6 w-6" />
+            Comenzar Jornada
           </Button>
         );
       case 'active':
         return (
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <Button onClick={pauseDay} variant="outline">
-              <Pause className="mr-2 h-4 w-4" />
-              Pausar
+          <div className="space-y-4 w-full">
+            <Button 
+              onClick={pauseDay} 
+              className="w-full h-20 text-lg bg-rose-200 hover:bg-rose-300 text-rose-800"
+            >
+              <Pause className="mr-2 h-6 w-6" />
+              Pausa
             </Button>
-            <Button onClick={endDay} variant="destructive">
-              <StopCircle className="mr-2 h-4 w-4" />
-              Finalizar
+            <Button 
+              onClick={endDay} 
+              className="w-full h-20 text-lg bg-blue-200 hover:bg-blue-300 text-blue-800"
+            >
+              <Briefcase className="mr-2 h-6 w-6" />
+              Finalizar Jornada
             </Button>
           </div>
         );
       case 'paused':
         return (
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <Button onClick={resumeDay} variant="outline">
-              <Play className="mr-2 h-4 w-4" />
+          <div className="space-y-4 w-full">
+            <Button 
+              onClick={resumeDay} 
+              className="w-full h-20 text-lg bg-rose-200 hover:bg-rose-300 text-rose-800"
+            >
+              <Play className="mr-2 h-6 w-6" />
               Reanudar
             </Button>
-            <Button onClick={endDay} variant="destructive">
-              <StopCircle className="mr-2 h-4 w-4" />
-              Finalizar
+            <Button 
+              onClick={endDay} 
+              className="w-full h-20 text-lg bg-blue-200 hover:bg-blue-300 text-blue-800"
+            >
+              <Briefcase className="mr-2 h-6 w-6" />
+              Finalizar Jornada
             </Button>
           </div>
         );
       case 'finished':
         return (
-          <Button disabled className="w-full">
+          <Button 
+            disabled 
+            className="w-full h-20 text-lg"
+          >
             Jornada Finalizada
           </Button>
         );
@@ -241,59 +276,10 @@ const TimesheetControl: React.FC<TimesheetControlProps> = ({ employee, onUpdate,
 
   return (
     <>
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Control de Jornada</span>
-            <span className="text-lg font-mono">{elapsedTime}</span>
-          </CardTitle>
-          <CardDescription>
-            <div className="flex items-center mt-1">
-              <User className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>{employee.name} - {employee.role}</span>
-            </div>
-            <div className="flex items-center mt-1">
-              <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>
-                {timesheet.startTime
-                  ? `Inicio: ${new Date(timesheet.startTime).toLocaleTimeString()}`
-                  : 'Jornada no iniciada'}
-              </span>
-            </div>
-            {timesheet.startTime && timesheet.location.startLocation && (
-              <div className="flex items-center mt-1">
-                <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>
-                  Ubicación: {timesheet.location.startLocation.coords.latitude.toFixed(6)}, 
-                  {timesheet.location.startLocation.coords.longitude.toFixed(6)}
-                </span>
-              </div>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {timesheet.status === 'active' && (
-              <div className="rounded-lg bg-green-100 dark:bg-green-900/20 p-3 text-center">
-                <span className="text-green-800 dark:text-green-400 font-medium">Jornada activa</span>
-              </div>
-            )}
-            {timesheet.status === 'paused' && (
-              <div className="rounded-lg bg-amber-100 dark:bg-amber-900/20 p-3 text-center">
-                <span className="text-amber-800 dark:text-amber-400 font-medium">Jornada en pausa</span>
-              </div>
-            )}
-            {timesheet.status === 'finished' && (
-              <div className="rounded-lg bg-blue-100 dark:bg-blue-900/20 p-3 text-center">
-                <span className="text-blue-800 dark:text-blue-400 font-medium">Jornada finalizada</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter>
-          {renderActionButtons()}
-        </CardFooter>
-      </Card>
+      <div className="space-y-4">
+        {renderActionButtons()}
+        {renderTimeInfo()}
+      </div>
 
       <Dialog open={signatureDialogOpen} onOpenChange={setSignatureDialogOpen}>
         <DialogContent>
