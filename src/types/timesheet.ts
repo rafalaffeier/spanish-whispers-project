@@ -16,10 +16,14 @@ export interface TimesheetEntry {
   };
   status: TimesheetStatus;
   date: string;
+  tipo?: string;
+  incidencia?: string;
+  lugar?: string;
 }
 
 export interface Employee {
   id: string;
   name: string;
   role: string;
+  avatar?: string;
 }

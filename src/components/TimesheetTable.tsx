@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Signature } from 'lucide-react';
+import { MapPin, Signature, Clock, Calendar } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -20,6 +20,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 interface TimesheetTableProps {
   timesheets: TimesheetEntry[];
@@ -80,34 +81,45 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
   };
 
   if (timesheets.length === 0) {
-    return <div className="text-center py-8">No hay registros para mostrar</div>;
+    return (
+      <div className="p-6 text-center">
+        <div className="w-full py-8 px-4 border border-dashed rounded-lg">
+          <p className="text-gray-500">Sin datos</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <Table>
-      <TableCaption>Registros de jornadas laborales</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead>Empleado</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Hora inicio</TableHead>
-          <TableHead>Hora fin</TableHead>
-          <TableHead>Duración</TableHead>
-          <TableHead>Acciones</TableHead>
+          <TableHead className="w-[40px]"></TableHead>
+          <TableHead className="w-[50px]">#</TableHead>
+          <TableHead>Tipo</TableHead>
+          <TableHead>Incidencia</TableHead>
+          <TableHead>Hora</TableHead>
+          <TableHead>Lugar</TableHead>
+          <TableHead className="text-right">Acciones</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {timesheets.map((timesheet) => (
+        {timesheets.map((timesheet, index) => (
           <TableRow key={timesheet.id}>
-            <TableCell className="font-medium">{timesheet.employeeName}</TableCell>
-            <TableCell>{timesheet.date}</TableCell>
-            <TableCell>{getStatusBadge(timesheet.status)}</TableCell>
-            <TableCell>{formatTime(timesheet.startTime)}</TableCell>
-            <TableCell>{formatTime(timesheet.endTime)}</TableCell>
-            <TableCell>{calculateDuration(timesheet)}</TableCell>
             <TableCell>
-              <div className="flex space-x-2">
+              <Clock className="h-5 w-5 text-gray-400" />
+            </TableCell>
+            <TableCell>{index + 1}</TableCell>
+            <TableCell>{timesheet.tipo || getStatusBadge(timesheet.status)}</TableCell>
+            <TableCell>{timesheet.incidencia || "---"}</TableCell>
+            <TableCell>
+              {timesheet.startTime && formatTime(timesheet.startTime)}
+              {timesheet.endTime && ` - ${formatTime(timesheet.endTime)}`}
+              {(!timesheet.startTime && !timesheet.endTime) && "---"}
+            </TableCell>
+            <TableCell>{timesheet.lugar || "---"}</TableCell>
+            <TableCell className="text-right">
+              <div className="flex justify-end space-x-2">
                 {/* Diálogo para ver ubicación */}
                 <Dialog>
                   <DialogTrigger asChild>
