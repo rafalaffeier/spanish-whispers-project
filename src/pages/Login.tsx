@@ -33,6 +33,10 @@ const Login = () => {
     navigate('/admin');
   };
 
+  const goToRegister = () => {
+    navigate('/register');
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
       <h1 className="text-2xl font-medium text-center mb-6">
@@ -86,7 +90,7 @@ const Login = () => {
         
         <CardFooter className="flex justify-start p-0 mt-6">
           <p className="text-gray-700">
-            Regístrate <a href="#" className="text-purple-700 hover:underline">aquí</a> si aún no estás registrado
+            Regístrate <button onClick={goToRegister} className="text-purple-700 hover:underline">aquí</button> si aún no estás registrado
           </p>
         </CardFooter>
       </Card>
