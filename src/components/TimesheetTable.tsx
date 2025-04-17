@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TimesheetEntry } from '@/types/timesheet';
+import { TimesheetEntry, PauseRecord } from '@/types/timesheet';
 import { 
   Table, 
   TableBody, 
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Signature, Clock, Calendar } from 'lucide-react';
+import { MapPin, Signature, Clock, Calendar, PauseCircle } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -80,6 +80,13 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
     return `${hours}h ${minutes}m`;
   };
 
+  // Helper function to format pause details
+  const formatPauseDetails = (pause: PauseRecord) => {
+    const startTime = format(new Date(pause.startTime), 'HH:mm:ss');
+    const endTime = pause.endTime ? format(new Date(pause.endTime), 'HH:mm:ss') : 'En curso';
+    return `${startTime} - ${endTime}: ${pause.reason}`;
+  };
+
   if (timesheets.length === 0) {
     return (
       <div className="p-6 text-center">
@@ -120,6 +127,36 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
             <TableCell>{timesheet.lugar || "---"}</TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end space-x-2">
+                {/* Diálogo para ver pausas */}
+                {timesheet.pauses && timesheet.pauses.length > 0 && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <PauseCircle className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Pausas registradas</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-2">
+                        {timesheet.pauses.map((pause, idx) => (
+                          <div key={idx} className="border-b pb-2 last:border-b-0">
+                            <p className="text-sm font-medium">{format(new Date(pause.startTime), 'dd/MM/yyyy')}</p>
+                            <p className="text-sm">
+                              Desde las <span className="font-medium">{format(new Date(pause.startTime), 'HH:mm:ss')}</span>{' '}
+                              hasta las <span className="font-medium">
+                                {pause.endTime ? format(new Date(pause.endTime), 'HH:mm:ss') : 'En curso'}
+                              </span>
+                            </p>
+                            <p className="text-sm font-medium mt-1">Motivo: {pause.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                
                 {/* Diálogo para ver ubicación */}
                 <Dialog>
                   <DialogTrigger asChild>

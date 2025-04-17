@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { toast } from "@/hooks/use-toast";
-import { TimesheetEntry, TimesheetStatus } from '@/types/timesheet';
+import { TimesheetEntry, TimesheetStatus, PauseRecord } from '@/types/timesheet';
 
 interface UseTimesheetControllerProps {
   employee: { id: string; name: string; role: string };
@@ -27,6 +27,7 @@ export const useTimesheetController = ({
       resumeTime: [],
       endTime: null,
       signature: null,
+      pauses: [],
       location: {
         startLocation: null,
         endLocation: null
@@ -38,6 +39,8 @@ export const useTimesheetController = ({
   
   const [elapsedTime, setElapsedTime] = useState<string>('00:00:00');
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
+  const [pauseReason, setPauseReason] = useState('');
   const { location, getLocation } = useGeolocation();
 
   // Calculate elapsed time
@@ -121,14 +124,38 @@ export const useTimesheetController = ({
   };
 
   const pauseDay = () => {
+    setPauseDialogOpen(true);
+  };
+
+  const handlePauseConfirm = () => {
+    if (!pauseReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Debes ingresar un motivo para la pausa.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const now = new Date();
+    const newPause: PauseRecord = {
+      startTime: now,
+      endTime: null,
+      reason: pauseReason
+    };
+    
     const updatedTimesheet = {
       ...timesheet,
-      pauseTime: [...timesheet.pauseTime, new Date()],
+      pauseTime: [...timesheet.pauseTime, now],
+      pauses: [...timesheet.pauses, newPause],
       status: 'paused' as TimesheetStatus
     };
     
     setTimesheet(updatedTimesheet);
     onUpdate(updatedTimesheet);
+    setPauseDialogOpen(false);
+    setPauseReason('');
+    
     toast({
       title: "Jornada pausada",
       description: "Tu jornada está ahora en pausa.",
@@ -136,9 +163,21 @@ export const useTimesheetController = ({
   };
 
   const resumeDay = () => {
+    const now = new Date();
+    const updatedPauses = [...timesheet.pauses];
+    // Update the last pause with the end time
+    if (updatedPauses.length > 0) {
+      const lastPauseIndex = updatedPauses.length - 1;
+      updatedPauses[lastPauseIndex] = {
+        ...updatedPauses[lastPauseIndex],
+        endTime: now
+      };
+    }
+    
     const updatedTimesheet = {
       ...timesheet,
-      resumeTime: [...timesheet.resumeTime, new Date()],
+      resumeTime: [...timesheet.resumeTime, now],
+      pauses: updatedPauses,
       status: 'active' as TimesheetStatus
     };
     
@@ -158,9 +197,19 @@ export const useTimesheetController = ({
       status: 'finished' as TimesheetStatus
     };
     
-    // If was paused, add resume time
+    // If was paused, add resume time and update the last pause
     if (timesheet.status === 'paused' && timesheet.pauseTime.length > timesheet.resumeTime.length) {
-      updatedTimesheet.resumeTime = [...timesheet.resumeTime, new Date()];
+      const now = new Date();
+      updatedTimesheet.resumeTime = [...timesheet.resumeTime, now];
+      
+      // Update the last pause with end time
+      if (updatedTimesheet.pauses.length > 0) {
+        const lastPauseIndex = updatedTimesheet.pauses.length - 1;
+        updatedTimesheet.pauses[lastPauseIndex] = {
+          ...updatedTimesheet.pauses[lastPauseIndex],
+          endTime: now
+        };
+      }
     }
     
     updatedTimesheet.endTime = new Date();
@@ -192,15 +241,26 @@ export const useTimesheetController = ({
     });
   };
 
+  const cancelPause = () => {
+    setPauseDialogOpen(false);
+    setPauseReason('');
+  };
+
   return {
     timesheet,
     elapsedTime,
     signatureDialogOpen,
     setSignatureDialogOpen,
+    pauseDialogOpen,
+    setPauseDialogOpen,
+    pauseReason,
+    setPauseReason,
     startDay,
     pauseDay,
     resumeDay,
     endDay,
-    handleSignatureSave
+    handleSignatureSave,
+    handlePauseConfirm,
+    cancelPause
   };
 };

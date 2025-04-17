@@ -1,10 +1,10 @@
 
 export interface Employee {
-  id: number;
+  id: string;
   name: string;
   email?: string;
   avatar?: string;
-  role: 'employee' | 'admin';
+  role: 'employee' | 'admin' | 'Técnico' | 'Administrativo' | 'Supervisor';
   // Campos para el perfil
   firstName?: string;
   lastName?: string;
@@ -19,19 +19,32 @@ export interface Employee {
   phone?: string;
 }
 
-export interface Timesheet {
-  id: number;
-  employeeId: number;
-  date: string;
-  startTime: string | null;
-  endTime: string | null;
-  signature: string | null;
-  location?: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  } | null;
+export interface PauseRecord {
+  startTime: Date;
+  endTime: Date | null;
+  reason: string;
 }
+
+export interface TimesheetEntry {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  date: string;
+  startTime: Date | null;
+  pauseTime: Date[];
+  resumeTime: Date[];
+  endTime: Date | null;
+  signature: string | null;
+  pauses: PauseRecord[];  // New field to track pause reasons
+  location: {
+    startLocation: GeolocationPosition | null;
+    endLocation: GeolocationPosition | null;
+  };
+  status: TimesheetStatus;
+}
+
+// Enum for timesheet status
+export type TimesheetStatus = 'not_started' | 'active' | 'paused' | 'finished';
 
 // Añadimos la interface para la empresa
 export interface Company {

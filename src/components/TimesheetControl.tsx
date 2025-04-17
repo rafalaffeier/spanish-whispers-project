@@ -5,6 +5,8 @@ import { useTimesheetController } from '@/hooks/useTimesheetController';
 import TimesheetActions from '@/components/timesheet/TimesheetActions';
 import TimesheetInfo from '@/components/timesheet/TimesheetInfo';
 import TimesheetSignatureDialog from '@/components/timesheet/TimesheetSignatureDialog';
+import PauseDialog from '@/components/timesheet/PauseDialog';
+import PausesList from '@/components/timesheet/PausesList';
 
 interface TimesheetControlProps {
   employee: { id: string; name: string; role: string };
@@ -22,11 +24,17 @@ const TimesheetControl: React.FC<TimesheetControlProps> = ({
     elapsedTime,
     signatureDialogOpen,
     setSignatureDialogOpen,
+    pauseDialogOpen,
+    setPauseDialogOpen,
+    pauseReason,
+    setPauseReason,
     startDay,
     pauseDay,
     resumeDay,
     endDay,
-    handleSignatureSave
+    handleSignatureSave,
+    handlePauseConfirm,
+    cancelPause
   } = useTimesheetController({
     employee,
     onUpdate,
@@ -48,12 +56,26 @@ const TimesheetControl: React.FC<TimesheetControlProps> = ({
           startTime={timesheet.startTime} 
           elapsedTime={elapsedTime} 
         />
+        
+        {/* Show pauses list if there are any */}
+        {timesheet.pauses && timesheet.pauses.length > 0 && (
+          <PausesList pauses={timesheet.pauses} />
+        )}
       </div>
 
       <TimesheetSignatureDialog 
         open={signatureDialogOpen}
         onOpenChange={setSignatureDialogOpen}
         onSave={handleSignatureSave}
+      />
+      
+      <PauseDialog
+        open={pauseDialogOpen}
+        onOpenChange={setPauseDialogOpen}
+        reason={pauseReason}
+        onReasonChange={setPauseReason}
+        onConfirm={handlePauseConfirm}
+        onCancel={cancelPause}
       />
     </>
   );
