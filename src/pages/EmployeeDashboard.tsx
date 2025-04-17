@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import TimesheetControl from '@/components/TimesheetControl';
@@ -8,9 +8,11 @@ import { LogOut, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ProfileEditDialog from '@/components/profile/ProfileEditDialog';
 
 const EmployeeDashboard = () => {
   const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet } = useTimesheet();
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   if (!currentEmployee) {
     return <Navigate to="/login" />;
@@ -28,7 +30,7 @@ const EmployeeDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header con botón de configuración */}
       <div className="p-4 flex justify-end">
-        <Button variant="ghost" size="icon" onClick={handleLogout}>
+        <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
           <Settings className="h-6 w-6 text-gray-500" />
         </Button>
       </div>
@@ -58,6 +60,12 @@ const EmployeeDashboard = () => {
           existingTimesheet={currentTimesheet}
         />
       </div>
+
+      {/* Diálogo de edición de perfil */}
+      <ProfileEditDialog 
+        open={profileDialogOpen} 
+        onOpenChange={setProfileDialogOpen} 
+      />
     </div>
   );
 };
