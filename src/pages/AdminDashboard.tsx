@@ -6,7 +6,7 @@ import AdminSidebar from '@/components/AdminSidebar';
 import TimesheetTable from '@/components/TimesheetTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, FileDown, FileText } from 'lucide-react';
+import { Calendar as CalendarIcon, FileDown, FileText, PauseCircle, Clock, Users } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -47,6 +47,19 @@ const AdminDashboard = () => {
   const downloadPDF = () => {
     console.log("Descargando PDF...");
     alert("Descarga de PDF iniciada");
+  };
+
+  // Calcular pausas totales
+  const calculateTotalPauses = () => {
+    return filteredTimesheets.reduce((total, timesheet) => {
+      return total + (timesheet.pauses ? timesheet.pauses.length : 0);
+    }, 0);
+  };
+
+  // Calcular horas trabajadas totales (simulado)
+  const calculateTotalHours = () => {
+    // Esta es una implementación simulada
+    return filteredTimesheets.length > 0 ? `${filteredTimesheets.length * 4}h 30m` : "0h 0m";
   };
 
   return (
@@ -102,6 +115,45 @@ const AdminDashboard = () => {
                 <FileText className="mr-2 h-4 w-4" />
                 Descargar PDF
               </Button>
+            </div>
+          </div>
+          
+          {/* Tarjetas de resumen */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500">Total horas trabajadas</p>
+                  <p className="text-2xl font-semibold">{calculateTotalHours()}</p>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500">Total pausas</p>
+                  <p className="text-2xl font-semibold">{calculateTotalPauses()}</p>
+                </div>
+                <div className="bg-yellow-100 p-3 rounded-full">
+                  <PauseCircle className="h-5 w-5 text-yellow-500" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500">Empleados activos</p>
+                  <p className="text-2xl font-semibold">{uniqueEmployees.length}</p>
+                </div>
+                <div className="bg-green-100 p-3 rounded-full">
+                  <Users className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
             </div>
           </div>
           

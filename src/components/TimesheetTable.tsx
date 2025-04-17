@@ -103,10 +103,10 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
         <TableRow>
           <TableHead className="w-[40px]"></TableHead>
           <TableHead className="w-[50px]">#</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Incidencia</TableHead>
+          <TableHead>Estado</TableHead>
+          <TableHead>Duración</TableHead>
           <TableHead>Hora</TableHead>
-          <TableHead>Lugar</TableHead>
+          <TableHead>Empleado</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
         </TableRow>
       </TableHeader>
@@ -117,14 +117,14 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
               <Clock className="h-5 w-5 text-gray-400" />
             </TableCell>
             <TableCell>{index + 1}</TableCell>
-            <TableCell>{timesheet.tipo || getStatusBadge(timesheet.status)}</TableCell>
-            <TableCell>{timesheet.incidencia || "---"}</TableCell>
+            <TableCell>{getStatusBadge(timesheet.status)}</TableCell>
+            <TableCell>{calculateDuration(timesheet)}</TableCell>
             <TableCell>
               {timesheet.startTime && formatTime(timesheet.startTime)}
               {timesheet.endTime && ` - ${formatTime(timesheet.endTime)}`}
               {(!timesheet.startTime && !timesheet.endTime) && "---"}
             </TableCell>
-            <TableCell>{timesheet.lugar || "---"}</TableCell>
+            <TableCell>{timesheet.employeeName || "---"}</TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end space-x-2">
                 {/* Diálogo para ver pausas */}
