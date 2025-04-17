@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,23 +33,20 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Color personalizado para la aplicación */
+    --app-green: 88 45% 60%;
+    --app-green-dark: 88 45% 45%;
   }
 
   .dark {
@@ -96,6 +94,21 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Estilos personalizados para la aplicación */
+@layer components {
+  .app-card {
+    @apply bg-white rounded-2xl shadow-md border border-gray-100 p-6 transition-all;
+  }
+  
+  .green-button {
+    @apply bg-[#A4CB6A] hover:bg-[#8FB75A] text-white font-medium transition-colors;
+  }
+  
+  .pulse-animation {
+    @apply animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite];
   }
 }
