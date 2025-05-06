@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  
+  // Para propósitos de debug, agregar un log
+  useEffect(() => {
+    console.log("Login component mounted");
+    console.log("Base path:", import.meta.env.BASE_URL);
+    // Verificar rutas
+    console.log("Current pathname:", window.location.pathname);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +41,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Intentando iniciar sesión...");
       // Usar la función login de la API 
       const { employee, token } = await login(email, password);
       
