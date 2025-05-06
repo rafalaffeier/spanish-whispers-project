@@ -1,10 +1,9 @@
-
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
 import { Employee, TimesheetEntry, PauseRecord } from '@/types/timesheet';
 
-// URL base de la API (cambiar según configuración del servidor)
-const API_BASE_URL = 'http://tu-servidor-plesk/api';
+// URL base de la API (actualizada para el subdirectorio)
+const API_BASE_URL = 'http://aplium.com/apphora/api';
 
 // Token de autenticación
 let authToken: string | null = null;

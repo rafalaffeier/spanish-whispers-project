@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TimesheetProvider } from "@/context/TimesheetContext";
 import Login from "./pages/Login";
-import Register from "./pages/Register"; // Importamos la nueva página
+import Register from "./pages/Register"; 
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -21,6 +21,9 @@ const queryClient = new QueryClient({
   }
 });
 
+// Definir base path para la aplicación
+const BASE_PATH = '/apphora';
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -28,11 +31,11 @@ const App = () => (
         <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
           <Toaster />
           <Sonner position="top-right" closeButton={true} />
-          <BrowserRouter>
+          <BrowserRouter basename={BASE_PATH}>
             <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} /> {/* Nueva ruta */}
+              <Route path="/register" element={<Register />} /> 
               <Route path="/employee" element={<EmployeeDashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
