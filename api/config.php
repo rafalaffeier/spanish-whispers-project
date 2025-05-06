@@ -2,9 +2,9 @@
 <?php
 // Configuración de la base de datos
 define('DB_HOST', 'localhost'); // Cambiar por tu host de MySQL en Plesk
-define('DB_NAME', 'control_jornada');
-define('DB_USER', ''); // Añadir tu usuario de MySQL
-define('DB_PASSWORD', ''); // Añadir tu contraseña de MySQL
+define('DB_NAME', 'apliumapp');
+define('DB_USER', 'apliumapp'); // Usuario de MySQL
+define('DB_PASSWORD', 'apliumapp'); // Contraseña de MySQL
 
 // Zona horaria
 date_default_timezone_set('Europe/Madrid');
