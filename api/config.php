@@ -1,35 +1,19 @@
 
 <?php
+// Configuración global de la API
+
 // Configuración de la base de datos
-define('DB_HOST', 'localhost'); // Cambiar por tu host de MySQL en Plesk
-define('DB_NAME', 'apliumapp');
-define('DB_USER', 'apliumapp'); // Usuario de MySQL
-define('DB_PASSWORD', 'apliumapp'); // Contraseña de MySQL
-
-// Zona horaria
-date_default_timezone_set('Europe/Madrid');
-
-// Cabeceras CORS para permitir acceso desde el frontend
-header('Access-Control-Allow-Origin: *'); // En producción, especificar el origen exacto
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Content-Type: application/json');
-
-// Si es una solicitud OPTIONS, terminar aquí (para CORS preflight)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
-// Función para conectar a la base de datos
 function getConnection() {
+    $host = 'localhost';
+    $dbname = 'apliumapp';
+    $username = 'aplicaciones';
+    $password = 'P#88wcJbyN';
+    
     try {
-        $conn = new PDO(
-            'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
-            DB_USER,
-            DB_PASSWORD,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-        return $conn;
+        $db = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        return $db;
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Error de conexión a la base de datos: ' . $e->getMessage()]);
@@ -37,49 +21,71 @@ function getConnection() {
     }
 }
 
-// Función para generar respuesta JSON
-function response($data, $status = 200) {
-    http_response_code($status);
+// Función para verificar la autenticación del usuario
+function getAuthenticatedUser() {
+    $headers = apache_request_headers();
+    if (!isset($headers['Authorization'])) {
+        return false;
+    }
+    
+    $authHeader = $headers['Authorization'];
+    if (strpos($authHeader, 'Bearer ') !== 0) {
+        return false;
+    }
+    
+    $token = substr($authHeader, 7);
+    
+    // Por simplicidad, estamos usando el ID como token 
+    // En un sistema real, se usaría JWT o similar
+    try {
+        $db = getConnection();
+        $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
+        $stmt->execute([$token]);
+        
+        if ($stmt->rowCount() === 1) {
+            return $token; // ID del empleado autenticado
+        }
+        
+        return false;
+    } catch (PDOException $e) {
+        error_log('Error de autenticación: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// Función para registrar acciones en el log
+function logAction($empleado_id, $accion, $detalles = null, $ip = null) {
+    try {
+        if (!$ip) {
+            $ip = $_SERVER['REMOTE_ADDR'];
+        }
+        
+        $db = getConnection();
+        $stmt = $db->prepare('INSERT INTO logs (empleado_id, accion, detalles, ip) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$empleado_id, $accion, $detalles, $ip]);
+        
+    } catch (PDOException $e) {
+        error_log('Error al registrar acción: ' . $e->getMessage());
+    }
+}
+
+// Función para enviar respuestas JSON
+function response($data, $code = 200) {
+    http_response_code($code);
+    header('Content-Type: application/json');
     echo json_encode($data);
     exit;
 }
 
-// Función para obtener el usuario autenticado (básica)
-function getAuthenticatedUser() {
-    // Implementación básica. En producción, usar JWT o similar
-    if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        return null;
-    }
-    
-    $auth = $_SERVER['HTTP_AUTHORIZATION'];
-    if (strpos($auth, 'Bearer ') !== 0) {
-        return null;
-    }
-    
-    $token = substr($auth, 7);
-    // Aquí implementarías la validación del token
-    // Por ahora, simplemente extraemos el ID de usuario (simulado)
-    $userId = validateToken($token);
-    
-    return $userId;
+// Configuración de CORS - Para permitir peticiones desde el frontend
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Manejar petición OPTIONS (pre-flight de CORS)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
 }
 
-// Función simulada de validación de token
-function validateToken($token) {
-    // En un sistema real, verificarías el token JWT o similar
-    // Por ahora, simulamos que el token es el ID del usuario
-    return $token;
-}
-
-// Función para registrar log
-function logAction($empleadoId, $accion, $detalles = '') {
-    try {
-        $db = getConnection();
-        $stmt = $db->prepare('INSERT INTO logs (empleado_id, accion, detalles, ip) VALUES (?, ?, ?, ?)');
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $stmt->execute([$empleadoId, $accion, $detalles, $ip]);
-    } catch (Exception $e) {
-        // Log silencioso, no interrumpir flujo principal
-        error_log("Error al guardar log: " . $e->getMessage());
-    }
-}
+// Modificar index.php para mejorar el login y distinguir entre empresa y empleado

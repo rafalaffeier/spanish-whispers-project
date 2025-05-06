@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS empleados (
     dni VARCHAR(20) UNIQUE,
     rol_id INT,
     departamento_id INT,
+    empresa_id VARCHAR(36), -- Relación con la empresa empleadora
     cargo VARCHAR(100),
     division VARCHAR(100),
     pais VARCHAR(100),
@@ -48,7 +49,8 @@ CREATE TABLE IF NOT EXISTS empleados (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL,
     FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL,
-    FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL
+    FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL,
+    FOREIGN KEY (empresa_id) REFERENCES empleados(id) ON DELETE SET NULL
 );
 
 -- Tabla de jornadas
@@ -150,7 +152,8 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('administrador', 'Acceso completo al sistema'),
 ('empleado', 'Acceso a registro de jornada propio'),
 ('supervisor', 'Acceso a registros de empleados bajo su supervisión'),
-('rrhh', 'Acceso a reportes y gestión de personal');
+('rrhh', 'Acceso a reportes y gestión de personal'),
+('empresa', 'Acceso como empresa empleadora');
 
 -- Inserta departamentos de ejemplo
 INSERT INTO departamentos (nombre, descripcion) VALUES 

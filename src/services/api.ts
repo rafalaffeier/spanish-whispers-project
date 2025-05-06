@@ -1,6 +1,7 @@
+
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
-import { Employee, TimesheetEntry, PauseRecord } from '@/types/timesheet';
+import { Employee, TimesheetEntry, PauseRecord, RegistrationData } from '@/types/timesheet';
 
 // URL base de la API (actualizada para el subdirectorio)
 const API_BASE_URL = 'http://aplium.com/apphora/api';
@@ -300,7 +301,11 @@ export const login = async (email: string, password: string): Promise<{
       id: response.empleado.id,
       name: response.empleado.nombre,
       role: response.empleado.rol,
+      isCompany: response.empleado.esEmpresa || false
     };
+
+    // Guardar el empleado en localStorage para recuperarlo al recargar
+    localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
     return {
       employee,
@@ -309,6 +314,14 @@ export const login = async (email: string, password: string): Promise<{
   }
 
   throw new Error('Credenciales inválidas');
+};
+
+// Función para registrar usuarios (empleados o empresas)
+export const register = async (data: RegistrationData): Promise<void> => {
+  await fetchWithAuth('/registro', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 };
 
 // Funciones de ayuda

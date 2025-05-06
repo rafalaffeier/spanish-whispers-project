@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ChevronDown, Mail, Lock, User, Building, MapPin, Phone } from 'lucide-react';
 import { RegistrationData } from '@/types/timesheet';
+import { register } from '@/services/api';
 
 // Esquema de validación del formulario
 const formSchema = z.object({
@@ -37,6 +37,7 @@ const formSchema = z.object({
 const Register = () => {
   const navigate = useNavigate();
   const [isEmployee, setIsEmployee] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,14 +59,23 @@ const Register = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // En una implementación real, esto enviaría los datos al backend
-    console.log('Datos de registro:', values);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
     
-    toast.success('Registro completado! Redirigiendo al login...');
-    
-    // Redireccionar al login después de un breve retraso para que el usuario vea el toast
-    setTimeout(() => navigate('/login'), 2000);
+    try {
+      // Enviar datos al backend
+      await register(values as RegistrationData);
+      
+      toast.success('Registro completado! Redirigiendo al login...');
+      
+      // Redireccionar al login después de un breve retraso para que el usuario vea el toast
+      setTimeout(() => navigate('/login'), 2000);
+    } catch (error) {
+      console.error('Error durante el registro:', error);
+      toast.error('Error al registrarse. Por favor, intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleUserType = (checked: boolean) => {
@@ -150,8 +160,14 @@ const Register = () => {
                 name="companyNif"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel className={isEmployee ? "block" : "hidden"}>
+                      {isEmployee ? "ID de la empresa donde trabajas" : ""}
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="NIF / CIF / ID de la empresa" {...field} />
+                      <Input 
+                        placeholder={isEmployee ? "NIF/CIF de tu empresa" : "NIF / CIF / ID de la empresa"} 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -324,8 +340,9 @@ const Register = () => {
               <Button 
                 type="submit" 
                 className="bg-[#5271FF] hover:bg-[#3a55d9] text-white px-8 py-2"
+                disabled={isSubmitting}
               >
-                Enviar
+                {isSubmitting ? 'Enviando...' : 'Enviar'}
               </Button>
             </div>
           </form>
