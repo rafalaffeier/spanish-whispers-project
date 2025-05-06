@@ -1,10 +1,10 @@
 
 -- Esquema de base de datos para el sistema de control de jornada
 -- Crear la base de datos si no existe
-CREATE DATABASE IF NOT EXISTS control_jornada CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS apliumapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Usar la base de datos
-USE control_jornada;
+USE apliumapp;
 
 -- Tabla de roles
 CREATE TABLE IF NOT EXISTS roles (
