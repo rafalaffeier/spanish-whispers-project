@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS empleados (
     FOREIGN KEY (empresa_id) REFERENCES empleados(id) ON DELETE SET NULL
 );
 
+-- Tabla para tokens de restablecimiento de contraseña
+CREATE TABLE IF NOT EXISTS reset_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    empleado_id VARCHAR(36) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expiry_date DATETIME NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
+);
+
 -- Tabla de jornadas
 CREATE TABLE IF NOT EXISTS jornadas (
     id VARCHAR(36) PRIMARY KEY,

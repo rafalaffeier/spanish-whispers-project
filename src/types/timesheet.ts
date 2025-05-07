@@ -90,3 +90,14 @@ export interface RegistrationData {
   password: string;
   confirmPassword: string;
 }
+
+// Interface para la recuperación de contraseña
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetConfirm {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}

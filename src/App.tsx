@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TimesheetProvider } from "@/context/TimesheetContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register"; 
+import PasswordReset from "./pages/PasswordReset"; 
+import PasswordResetConfirm from "./pages/PasswordResetConfirm"; 
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} /> 
+              <Route path="/password-reset" element={<PasswordReset />} />
+              <Route path="/password-reset-confirm" element={<PasswordResetConfirm />} />
               <Route path="/employee" element={<EmployeeDashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />

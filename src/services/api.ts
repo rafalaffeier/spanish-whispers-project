@@ -1,7 +1,7 @@
 
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
-import { Employee, TimesheetEntry, PauseRecord, RegistrationData } from '@/types/timesheet';
+import { Employee, TimesheetEntry, PauseRecord, RegistrationData, PasswordResetRequest, PasswordResetConfirm } from '@/types/timesheet';
 
 // URL base de la API (actualizada para el subdirectorio)
 const API_BASE_URL = 'http://aplium.com/apphora/api';
@@ -319,6 +319,21 @@ export const login = async (email: string, password: string): Promise<{
 // Función para registrar usuarios (empleados o empresas)
 export const register = async (data: RegistrationData): Promise<void> => {
   await fetchWithAuth('/registro', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+// Funciones para recuperación de contraseña
+export const requestPasswordReset = async (data: PasswordResetRequest): Promise<void> => {
+  await fetchWithAuth('/recuperar-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const confirmPasswordReset = async (data: PasswordResetConfirm): Promise<void> => {
+  await fetchWithAuth('/reset-password', {
     method: 'POST',
     body: JSON.stringify(data),
   });

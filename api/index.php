@@ -1,4 +1,3 @@
-
 <?php
 // API RESTful principal
 require_once 'config.php';
@@ -9,7 +8,7 @@ $segments = explode('/', trim($path, '/'));
 $apiEndpoint = $segments[count($segments) - 1] ?? '';
 
 // Rutas públicas (no requieren autenticación)
-$publicRoutes = ['login', 'registro', 'health'];
+$publicRoutes = ['login', 'registro', 'health', 'recuperar-password', 'reset-password'];
 
 if (!in_array($apiEndpoint, $publicRoutes) && $apiEndpoint != '') {
     $userId = getAuthenticatedUser();
@@ -41,6 +40,14 @@ switch ($apiEndpoint) {
         
     case 'registro':
         handleRegistro();
+        break;
+    
+    case 'recuperar-password':
+        handleRecuperarPassword();
+        break;
+        
+    case 'reset-password':
+        handleResetPassword();
         break;
     
     case 'health':
@@ -207,6 +214,109 @@ function handleRegistro() {
         ]);
     } catch (PDOException $e) {
         response(['error' => 'Error al registrar: ' . $e->getMessage()], 500);
+    }
+}
+
+function handleRecuperarPassword() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        response(['error' => 'Método no permitido'], 405);
+    }
+    
+    try {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['email'])) {
+            response(['error' => 'Datos incompletos'], 400);
+        }
+        
+        $email = $data['email'];
+        $db = getConnection();
+        
+        // Verificar si el email existe
+        $stmt = $db->prepare('SELECT id, nombre FROM empleados WHERE email = ? AND activo = 1');
+        $stmt->execute([$email]);
+        $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$empleado) {
+            // No revelamos si el email existe o no para evitar ataques de enumeración
+            response(['success' => true, 'message' => 'Si el correo existe, se ha enviado un enlace de recuperación']);
+        }
+        
+        // Generar token único
+        $token = bin2hex(random_bytes(32));
+        $expiryDate = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        
+        // Guardar el token en la base de datos
+        $stmt = $db->prepare('INSERT INTO reset_tokens (empleado_id, token, expiry_date) VALUES (?, ?, ?)');
+        $stmt->execute([$empleado['id'], $token, $expiryDate]);
+        
+        // En un entorno real, aquí enviaríamos el correo electrónico
+        // Por ahora, simulamos que el correo se envía correctamente
+        
+        // URL de restablecimiento (en un entorno real apuntaría a tu dominio)
+        $resetUrl = 'http://aplium.com/apphora/password-reset-confirm?token=' . $token;
+        
+        // Registro en el log
+        logAction($empleado['id'], 'recuperar_password', 'Solicitud de recuperación de contraseña', $_SERVER['REMOTE_ADDR']);
+        
+        // Respuesta al cliente
+        response(['success' => true, 'message' => 'Se ha enviado un enlace de recuperación a tu correo electrónico']);
+        
+    } catch (PDOException $e) {
+        error_log('Error en recuperación de contraseña: ' . $e->getMessage());
+        response(['error' => 'Error al procesar la solicitud'], 500);
+    }
+}
+
+function handleResetPassword() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        response(['error' => 'Método no permitido'], 405);
+    }
+    
+    try {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['token']) || !isset($data['password']) || !isset($data['confirmPassword'])) {
+            response(['error' => 'Datos incompletos'], 400);
+        }
+        
+        if ($data['password'] !== $data['confirmPassword']) {
+            response(['error' => 'Las contraseñas no coinciden'], 400);
+        }
+        
+        $token = $data['token'];
+        $password = $data['password'];
+        
+        $db = getConnection();
+        
+        // Verificar token válido y no expirado
+        $stmt = $db->prepare('SELECT empleado_id FROM reset_tokens WHERE token = ? AND expiry_date > NOW() AND used = 0');
+        $stmt->execute([$token]);
+        $resetToken = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$resetToken) {
+            response(['error' => 'El token no es válido o ha expirado'], 400);
+        }
+        
+        $empleadoId = $resetToken['empleado_id'];
+        
+        // Actualizar la contraseña
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $db->prepare('UPDATE empleados SET password = ? WHERE id = ?');
+        $stmt->execute([$hashedPassword, $empleadoId]);
+        
+        // Marcar el token como usado
+        $stmt = $db->prepare('UPDATE reset_tokens SET used = 1 WHERE token = ?');
+        $stmt->execute([$token]);
+        
+        // Registro en el log
+        logAction($empleadoId, 'reset_password', 'Contraseña actualizada correctamente', $_SERVER['REMOTE_ADDR']);
+        
+        response(['success' => true, 'message' => 'Contraseña actualizada correctamente']);
+        
+    } catch (PDOException $e) {
+        error_log('Error en restablecimiento de contraseña: ' . $e->getMessage());
+        response(['error' => 'Error al procesar la solicitud'], 500);
     }
 }
 
