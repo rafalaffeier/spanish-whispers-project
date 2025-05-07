@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import WeeklyTimesheetView from './WeeklyTimesheetView';
+import MonthlyTimesheetView from './MonthlyTimesheetView';
 
 interface TimesheetTableProps {
   timesheets: TimesheetEntry[];
@@ -32,8 +33,13 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({
   timesheets,
   viewMode = 'daily'
 }) => {
-  // Si estamos en modo semanal o mensual, mostrar la vista semanal
-  if (viewMode === 'weekly' || viewMode === 'monthly') {
+  // Mostrar la vista mensual
+  if (viewMode === 'monthly') {
+    return <MonthlyTimesheetView timesheets={timesheets} />;
+  }
+  
+  // Si estamos en modo semanal, mostrar la vista semanal
+  if (viewMode === 'weekly') {
     return <WeeklyTimesheetView timesheets={timesheets} />;
   }
 

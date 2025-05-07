@@ -49,6 +49,9 @@ export interface TimesheetEntry {
   // Campos para el nuevo diseño
   recordType?: 'Entrada' | 'Pausa' | 'Salida';
   incidencia?: string;
+  // Campo para horas totales para vistas mensuales/anuales
+  totalHours?: number;
+  totalHoursFormatted?: string;
 }
 
 // Enum for timesheet status
