@@ -46,6 +46,9 @@ export interface TimesheetEntry {
   weekNumber?: number;
   month?: number;
   year?: number;
+  // Campos para el nuevo diseño
+  recordType?: 'Entrada' | 'Pausa' | 'Salida';
+  incidencia?: string;
 }
 
 // Enum for timesheet status

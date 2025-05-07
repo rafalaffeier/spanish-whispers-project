@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TimesheetEntry, PauseRecord } from '@/types/timesheet';
+import { TimesheetEntry, PauseRecord, TimesheetPeriod } from '@/types/timesheet';
 import { 
   Table, 
   TableBody, 
@@ -21,12 +21,23 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import WeeklyTimesheetView from './WeeklyTimesheetView';
 
 interface TimesheetTableProps {
   timesheets: TimesheetEntry[];
+  viewMode?: TimesheetPeriod;
 }
 
-const TimesheetTable: React.FC<TimesheetTableProps> = ({ timesheets }) => {
+const TimesheetTable: React.FC<TimesheetTableProps> = ({ 
+  timesheets,
+  viewMode = 'daily'
+}) => {
+  // Si estamos en modo semanal o mensual, mostrar la vista semanal
+  if (viewMode === 'weekly' || viewMode === 'monthly') {
+    return <WeeklyTimesheetView timesheets={timesheets} />;
+  }
+
+  // Para la vista diaria mantenemos el componente original
   const formatTime = (date: Date | null) => {
     if (!date) return '---';
     return new Date(date).toLocaleTimeString();

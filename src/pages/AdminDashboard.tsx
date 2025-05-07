@@ -369,7 +369,10 @@ const AdminDashboard = () => {
           
           {/* Tabla de registros */}
           <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-            <TimesheetTable timesheets={filteredTimesheets} />
+            <TimesheetTable 
+              timesheets={filteredTimesheets} 
+              viewMode={activePeriod}
+            />
           </div>
         </main>
       </div>
