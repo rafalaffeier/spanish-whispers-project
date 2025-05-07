@@ -42,10 +42,17 @@ export interface TimesheetEntry {
     endLocation: GeolocationPosition | null;
   };
   status: TimesheetStatus;
+  // Nuevos campos para cálculos semanales y mensuales
+  weekNumber?: number;
+  month?: number;
+  year?: number;
 }
 
 // Enum for timesheet status
 export type TimesheetStatus = 'not_started' | 'active' | 'paused' | 'finished';
+
+// Periodo para filtrar timesheets
+export type TimesheetPeriod = 'daily' | 'weekly' | 'monthly';
 
 // Añadimos la interface para la empresa
 export interface Company {
