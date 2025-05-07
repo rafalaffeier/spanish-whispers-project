@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ChevronDown, Mail, Lock, User, Building, MapPin, Phone } from 'lucide-react';
 import { RegistrationData } from '@/types/timesheet';
-import { register } from '@/services/api';
+import { register as registerUser } from '@/services/api';
 
 // Esquema de validación del formulario
 const formSchema = z.object({
@@ -38,6 +39,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [isEmployee, setIsEmployee] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,10 +63,13 @@ const Register = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    setApiError(null);
     
     try {
+      console.log("Enviando datos de registro:", values);
+      
       // Enviar datos al backend
-      await register(values as RegistrationData);
+      await registerUser(values as RegistrationData);
       
       toast.success('Registro completado! Redirigiendo al login...');
       
@@ -72,6 +77,13 @@ const Register = () => {
       setTimeout(() => navigate('/login'), 2000);
     } catch (error) {
       console.error('Error durante el registro:', error);
+      
+      setApiError(
+        error instanceof Error 
+          ? error.message 
+          : 'Error al registrarse. Por favor, intenta nuevamente.'
+      );
+      
       toast.error('Error al registrarse. Por favor, intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
@@ -105,6 +117,13 @@ const Register = () => {
             <span className="text-lg">Empleado</span>
           </div>
         </div>
+
+        {apiError && (
+          <div className="mb-6 p-4 border border-red-300 bg-red-50 text-red-700 rounded-md">
+            <p className="font-medium">Error:</p>
+            <p>{apiError}</p>
+          </div>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

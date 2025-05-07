@@ -3,8 +3,13 @@
 import { toast } from "@/hooks/use-toast";
 import { Employee, TimesheetEntry, PauseRecord, RegistrationData, PasswordResetRequest, PasswordResetConfirm } from '@/types/timesheet';
 
-// URL base de la API (actualizada para el subdirectorio)
-const API_BASE_URL = 'http://aplium.com/apphora/api';
+// Detectar si estamos en modo desarrollo (en Lovable) o en producción
+const isDevelopment = window.location.hostname.includes('lovableproject.com');
+
+// URL base de la API (actualizada para usar HTTPS y manejar entorno de desarrollo)
+const API_BASE_URL = isDevelopment 
+  ? '/apphora/api' // URL relativa para desarrollo (evita problemas CORS)
+  : 'https://aplium.com/apphora/api'; // URL absoluta con HTTPS para producción
 
 // Token de autenticación
 let authToken: string | null = null;
@@ -49,6 +54,8 @@ const fetchWithAuth = async (
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
+    console.log(`Making API request to: ${API_BASE_URL}${url}`);
+    
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       headers,
