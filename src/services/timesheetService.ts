@@ -8,13 +8,13 @@ import { mapStatusFromApi, formatDateForApi } from './apiHelpers';
 export const getTimesheets = async (): Promise<TimesheetEntry[]> => {
   const data = await fetchWithAuth('/jornadas');
   // Mapear respuesta de API a formato de la aplicación
-  return data.map(mapApiTimesheetToApp);
+  return Array.isArray(data) ? data.map(mapApiTimesheetToApp) : [];
 };
 
 // Obtener jornadas de un empleado
 export const getTimesheetsByEmployee = async (employeeId: string): Promise<TimesheetEntry[]> => {
   const data = await fetchWithAuth(`/jornadas?empleado_id=${employeeId}`);
-  return data.map(mapApiTimesheetToApp);
+  return Array.isArray(data) ? data.map(mapApiTimesheetToApp) : [];
 };
 
 // Obtener la jornada de hoy para un empleado
@@ -22,7 +22,7 @@ export const getTodayTimesheet = async (employeeId: string): Promise<TimesheetEn
   const today = new Date().toISOString().split('T')[0];
   try {
     const data = await fetchWithAuth(`/jornadas?empleado_id=${employeeId}&fecha=${today}`);
-    if (data && data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       return mapApiTimesheetToApp(data[0]);
     }
     return null;
@@ -132,8 +132,8 @@ export const updateTimesheet = async (id: string, data: Partial<TimesheetEntry>)
   // Mapear del formato de la aplicación al formato de la API
   const apiData: Record<string, any> = {};
   
-  if (data.startTime) apiData.hora_inicio = formatDateForApi(data.startTime);
-  if (data.endTime) apiData.hora_fin = formatDateForApi(data.endTime);
+  if (data.startTime) apiData.hora_inicio = formatDateForApi(new Date(data.startTime));
+  if (data.endTime) apiData.hora_fin = formatDateForApi(new Date(data.endTime));
   if (data.signature) apiData.firma = data.signature;
   if (data.status) apiData.estado = mapStatusToApi(data.status);
 
@@ -147,9 +147,9 @@ export const updateTimesheet = async (id: string, data: Partial<TimesheetEntry>)
 const mapApiTimesheetToApp = (data: any): TimesheetEntry => {
   // Mapear pausas
   const pauses: PauseRecord[] = data.pausas ? data.pausas.map((pausa: any) => ({
-    startTime: new Date(pausa.hora_inicio),
+    startTime: pausa.hora_inicio ? new Date(pausa.hora_inicio) : new Date(),
     endTime: pausa.hora_fin ? new Date(pausa.hora_fin) : null,
-    reason: pausa.motivo
+    reason: pausa.motivo || 'Sin motivo'
   })) : [];
 
   // Mapear ubicaciones
@@ -191,6 +191,10 @@ const mapApiTimesheetToApp = (data: any): TimesheetEntry => {
     }
   }
 
+  // Crear los arrays de pausas y reinicios asegurando que sean del tipo correcto
+  const pauseTimes: (Date | string)[] = pauses.map(p => p.startTime);
+  const resumeTimes: (Date | string)[] = pauses.filter(p => p.endTime).map(p => p.endTime as Date | string);
+
   return {
     id: data.id,
     employeeId: data.empleado_id,
@@ -200,9 +204,9 @@ const mapApiTimesheetToApp = (data: any): TimesheetEntry => {
     endTime: data.hora_fin ? new Date(data.hora_fin) : null,
     signature: data.firma,
     status: mapStatusFromApi(data.estado) as 'not_started' | 'active' | 'paused' | 'finished',
-    pauseTime: pauses.map(p => p.startTime),
-    resumeTime: pauses.filter(p => p.endTime).map(p => p.endTime as Date),
-    pauses,
+    pauseTime: pauseTimes,
+    resumeTime: resumeTimes,
+    pauses: pauses,
     location: {
       startLocation,
       endLocation

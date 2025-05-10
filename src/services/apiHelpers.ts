@@ -41,15 +41,23 @@ export const fetchWithAuth = async (
       // Intentar leer el mensaje de error del cuerpo de la respuesta
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") !== -1) {
-        const errorData = await response.json();
-        console.error("API error response (JSON):", errorData);
-        errorMessage = errorData.error || errorMessage;
+        try {
+          const errorData = await response.json();
+          console.error("API error response (JSON):", errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          console.error("Error parsing JSON error:", e);
+        }
       } else {
         // Para errores no-JSON
-        const textError = await response.text();
-        console.error("API error response (text):", textError);
-        if (textError && textError.length > 0) {
-          errorMessage = textError;
+        try {
+          const textError = await response.text();
+          console.error("API error response (text):", textError);
+          if (textError && textError.length > 0) {
+            errorMessage = textError;
+          }
+        } catch (e) {
+          console.error("Error reading error response text:", e);
         }
       }
       
@@ -86,13 +94,23 @@ export const fetchWithAuth = async (
       return {};
     }
 
-    const responseData = await response.json().catch(e => {
-      console.error("Error al parsear JSON:", e);
-      console.error("Response text:", response.text());
-      return {}; 
-    });
-    console.log("API response data:", responseData);
-    return responseData;
+    // Manejar respuesta HTML (frecuentemente un error de servidor)
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      console.log("Recibido HTML en vez de JSON:", contentType);
+      // Devolver un array vacío o un objeto según el contexto
+      return url.includes('jornadas') ? [] : {};
+    }
+
+    try {
+      const responseData = await response.json();
+      console.log("API response data:", responseData);
+      return responseData;
+    } catch (jsonError) {
+      console.error("Error al parsear JSON:", jsonError);
+      // En caso de error de parseo, devolver un resultado vacío según contexto
+      return url.includes('jornadas') ? [] : {};
+    }
   } catch (error) {
     console.error("API request failed:", error);
     
@@ -117,10 +135,9 @@ export const fetchWithAuth = async (
 };
 
 // Funciones para formateo de datos
-export const formatDateForApi = (date: Date): string => {
-  return date instanceof Date
-    ? date.toISOString()
-    : new Date(date).toISOString();
+export const formatDateForApi = (date: Date | string): string => {
+  const dateObj = date instanceof Date ? date : new Date(date);
+  return dateObj.toISOString();
 };
 
 // Mapeos de estados

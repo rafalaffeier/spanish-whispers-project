@@ -56,7 +56,7 @@ export interface PasswordResetRequest {
 // Datos para confirmar la recuperación de contraseña
 export interface PasswordResetConfirm {
   token: string;
-  email: string;
+  email?: string;  // Haciendo email opcional para corregir el error
   password: string;
   confirmPassword?: string;
 }
@@ -86,6 +86,19 @@ export interface RegistrationData {
   zipCode?: string;
 }
 
+// Tipo para ubicación geográfica
+export interface LocationData {
+  startLocation: GeolocationPosition | null;
+  endLocation: GeolocationPosition | null;
+}
+
+// Tipo para registros de pausa
+export interface PauseRecord {
+  startTime: Date | string;
+  endTime: Date | string | null;
+  reason: string;
+}
+
 // Otras interfaces necesarias para la aplicación
 export interface TimesheetEntry {
   id: string;
@@ -98,28 +111,18 @@ export interface TimesheetEntry {
   status: TimesheetStatus;
   
   // Arrays para pausas y reinicios
-  pauseTime: Date[] | string[];
-  resumeTime: Date[] | string[];
+  pauseTime: (Date | string)[];
+  resumeTime: (Date | string)[];
   pauses?: PauseRecord[];
   
   // Campos adicionales para la interfaz
   recordType?: string;
   incidencia?: string;
   totalTime?: number;
-}
-
-// Tipo para registros de pausa
-export interface PauseRecord {
-  startTime: Date | string;
-  endTime: Date | string | null;
-  reason: string;
+  
+  // Agregar location explícitamente para solucionar el error
+  location: LocationData;
 }
 
 // Tipo para los períodos de visualización de timesheet
 export type TimesheetPeriod = 'daily' | 'weekly' | 'monthly';
-
-// Tipo para ubicación geográfica
-export interface LocationData {
-  startLocation: GeolocationPosition | null;
-  endLocation: GeolocationPosition | null;
-}

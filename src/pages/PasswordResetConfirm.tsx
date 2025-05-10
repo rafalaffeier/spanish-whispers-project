@@ -76,6 +76,7 @@ const PasswordResetConfirm: React.FC = () => {
     try {
       await confirmPasswordReset({
         token,
+        // No necesitamos enviar email aquí, según la nueva definición de tipo
         password: data.password,
         confirmPassword: data.confirmPassword
       });

@@ -14,6 +14,7 @@ export const getEmployees = async (): Promise<Employee[]> => {
     email: emp.email,
     avatar: emp.avatar,
     role: emp.rol_nombre || 'empleado',
+    isCompany: emp.es_empresa || false, // Añadido isCompany
     firstName: emp.nombre.split(' ')[0],
     lastName: emp.apellidos,
     dni: emp.dni,
@@ -38,6 +39,7 @@ export const getEmployee = async (id: string): Promise<Employee> => {
     email: data.email,
     avatar: data.avatar,
     role: data.rol_nombre || 'empleado',
+    isCompany: data.es_empresa || false, // Añadido isCompany
     firstName: data.nombre.split(' ')[0],
     lastName: data.apellidos,
     dni: data.dni,
