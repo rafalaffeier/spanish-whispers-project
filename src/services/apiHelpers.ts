@@ -16,16 +16,21 @@ export const fetchWithAuth = async (
 
     // Añadir token de autenticación si existe Y la URL no es para login o registro
     const authToken = getAuthToken();
-    if (authToken && !url.includes('/login') && !url.includes('/registro')) {
+    if (authToken && !url.includes('/login') && !url.includes('/registro') 
+        && !url.includes('/recuperar-password') && !url.includes('/reset-password')) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     console.log(`Making API request to: ${API_BASE_URL}${url}`);
+    console.log('Request headers:', headers);
     
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       headers,
     });
+
+    // Para depuración
+    console.log(`Response status for ${url}:`, response.status);
 
     // Para respuestas que no son JSON (como errores de servidor)
     const contentType = response.headers.get("content-type");

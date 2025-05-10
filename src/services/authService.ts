@@ -71,6 +71,7 @@ export const register = async (data: RegistrationData): Promise<void> => {
   }
 
   try {
+    // Importante: NO añadir token para registro
     await fetchWithAuth('/registro', {
       method: 'POST',
       body: JSON.stringify(apiData),
