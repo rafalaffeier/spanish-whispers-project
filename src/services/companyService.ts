@@ -16,26 +16,25 @@ export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean,
     const normalizedNif = normalizeNif(nif);
     console.log(`[COMPANY SERVICE] Verificando empresa con NIF normalizado: ${normalizedNif}`);
     
-    // Hacemos una búsqueda directa primero (más sencilla y confiable)
     try {
-      console.log(`[COMPANY SERVICE] Intentando búsqueda directa de empresa con NIF: ${normalizedNif}`);
+      console.log(`[COMPANY SERVICE] Consultando API en: ${API_BASE_URL}/empresas?nif=${encodeURIComponent(normalizedNif)}`);
       
       // Usar fetch directo en lugar de fetchWithAuth para evitar problemas de autenticación
       const response = await fetch(`${API_BASE_URL}/empresas?nif=${encodeURIComponent(normalizedNif)}`);
       
       if (!response.ok) {
-        console.error(`[COMPANY SERVICE] Error en búsqueda directa: ${response.status} ${response.statusText}`);
-        throw new Error(`Error en búsqueda directa: ${response.status}`);
+        console.error(`[COMPANY SERVICE] Error en consulta: ${response.status} ${response.statusText}`);
+        throw new Error(`Error en consulta: ${response.status}`);
       }
       
       const text = await response.text();
-      console.log('[COMPANY SERVICE] Respuesta de búsqueda directa:', text);
+      console.log('[COMPANY SERVICE] Respuesta recibida:', text);
       
       try {
         const data = JSON.parse(text);
         
         if (data && Array.isArray(data) && data.length > 0) {
-          console.log('[COMPANY SERVICE] Empresa encontrada en búsqueda directa:', data[0]);
+          console.log('[COMPANY SERVICE] Empresa encontrada:', data[0]);
           return {
             exists: true,
             company: {
@@ -44,53 +43,17 @@ export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean,
             }
           };
         } else {
-          console.log('[COMPANY SERVICE] No se encontró ninguna empresa en búsqueda directa');
+          console.log('[COMPANY SERVICE] No se encontró ninguna empresa');
+          return { exists: false };
         }
       } catch (jsonError) {
         console.error('[COMPANY SERVICE] Error al parsear respuesta JSON:', jsonError);
-      }
-    } catch (directSearchError) {
-      console.error('[COMPANY SERVICE] Error en búsqueda directa:', directSearchError);
-    }
-    
-    // Si la búsqueda directa falló, intentar con el endpoint verify (método secundario)
-    try {
-      console.log(`[COMPANY SERVICE] Intentando verificar empresa con endpoint verify: ${normalizedNif}`);
-      
-      // Usar fetch directo en lugar de fetchWithAuth para evitar problemas de autenticación
-      const verifyResponse = await fetch(`${API_BASE_URL}/empresas/verify?nif=${encodeURIComponent(normalizedNif)}`);
-      
-      if (!verifyResponse.ok) {
-        console.error(`[COMPANY SERVICE] Error en verify: ${verifyResponse.status} ${verifyResponse.statusText}`);
         return { exists: false };
       }
-      
-      const verifyText = await verifyResponse.text();
-      console.log('[COMPANY SERVICE] Respuesta de verify:', verifyText);
-      
-      try {
-        const verifyData = JSON.parse(verifyText);
-        
-        if (verifyData && verifyData.exists) {
-          console.log('[COMPANY SERVICE] Empresa encontrada con verify:', verifyData.company);
-          return {
-            exists: true,
-            company: {
-              id: verifyData.company.id,
-              name: verifyData.company.nombre
-            }
-          };
-        }
-      } catch (jsonError) {
-        console.error('[COMPANY SERVICE] Error al parsear respuesta JSON verify:', jsonError);
-      }
-    } catch (verifyError) {
-      console.error('[COMPANY SERVICE] Error al verificar con endpoint verify:', verifyError);
+    } catch (error) {
+      console.error('[COMPANY SERVICE] Error en consulta:', error);
+      return { exists: false };
     }
-    
-    // Si llegamos aquí, la empresa no existe
-    console.log('[COMPANY SERVICE] No se encontró ninguna empresa con ese NIF después de intentar todos los métodos');
-    return { exists: false };
   } catch (error) {
     console.error('[COMPANY SERVICE] Error al verificar empresa:', error);
     return { exists: false };

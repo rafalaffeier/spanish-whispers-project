@@ -1,6 +1,18 @@
 
 <?php
 // Endpoint para operaciones con empresas
+require_once 'config.php';
+
+// Configurar las cabeceras CORS para permitir solicitudes desde cualquier origen
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json; charset=UTF-8");
+
+// Si es una solicitud OPTIONS, terminar aquí (preflight CORS)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
 
 // Si es una solicitud GET y tiene un parámetro 'nif', es una verificación de empresa
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['nif'])) {
@@ -36,6 +48,7 @@ function handleCompanyVerification($nif) {
         
         // Normalizar el NIF (eliminar espacios, guiones, etc.)
         $nif = preg_replace('/[^A-Z0-9]/i', '', strtoupper($nif));
+        error_log("NIF normalizado para búsqueda: $nif");
         
         $stmt = $db->prepare('SELECT id, nombre FROM empresas WHERE nif = ?');
         $stmt->execute([$nif]);
