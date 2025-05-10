@@ -1,4 +1,3 @@
-
 <?php
 // API RESTful principal
 require_once 'config.php';
@@ -217,88 +216,100 @@ function handleRegistro() {
                 'telefono' => $telefono
             ], true));
             
-            // Construir la consulta SQL de forma dinámica para evitar problemas de columnas
-            $fields = [];
-            $placeholders = [];
-            $values = [];
-            
-            // Campos obligatorios
-            $fields[] = 'id';
-            $placeholders[] = '?';
-            $values[] = $id;
-            
-            $fields[] = 'nombre';
-            $placeholders[] = '?';
-            $values[] = $nombre;
-            
-            $fields[] = 'apellidos';
-            $placeholders[] = '?';
-            $values[] = $apellidos;
-            
-            $fields[] = 'email';
-            $placeholders[] = '?';
-            $values[] = $email;
-            
-            $fields[] = 'password';
-            $placeholders[] = '?';
-            $values[] = $password;
-            
-            $fields[] = 'rol_id';
-            $placeholders[] = '?';
-            $values[] = $rolId;
-            
-            $fields[] = 'activo';
-            $placeholders[] = '1';
-            
-            // Campos opcionales
-            if ($dni !== null) {
-                $fields[] = 'dni';
+            // Verificar si la columna empresa_id existe en la tabla
+            try {
+                $columnsQuery = $db->prepare("SHOW COLUMNS FROM empleados LIKE 'empresa_id'");
+                $columnsQuery->execute();
+                $empresaColumnExists = ($columnsQuery->rowCount() > 0);
+                
+                // Construir la consulta SQL de forma dinámica para evitar problemas de columnas
+                $fields = [];
+                $placeholders = [];
+                $values = [];
+                
+                // Campos obligatorios
+                $fields[] = 'id';
                 $placeholders[] = '?';
-                $values[] = $dni;
-            }
-            
-            if ($empresaId !== null) {
-                $fields[] = 'empresa_id';
+                $values[] = $id;
+                
+                $fields[] = 'nombre';
                 $placeholders[] = '?';
-                $values[] = $empresaId;
-            }
-            
-            if ($pais !== null) {
-                $fields[] = 'pais';
+                $values[] = $nombre;
+                
+                $fields[] = 'apellidos';
                 $placeholders[] = '?';
-                $values[] = $pais;
-            }
-            
-            if ($ciudad !== null) {
-                $fields[] = 'ciudad';
+                $values[] = $apellidos;
+                
+                $fields[] = 'email';
                 $placeholders[] = '?';
-                $values[] = $ciudad;
-            }
-            
-            if ($direccion !== null) {
-                $fields[] = 'direccion';
+                $values[] = $email;
+                
+                $fields[] = 'password';
                 $placeholders[] = '?';
-                $values[] = $direccion;
-            }
-            
-            if ($codigoPostal !== null) {
-                $fields[] = 'codigo_postal';
+                $values[] = $password;
+                
+                $fields[] = 'rol_id';
                 $placeholders[] = '?';
-                $values[] = $codigoPostal;
+                $values[] = $rolId;
+                
+                $fields[] = 'activo';
+                $placeholders[] = '1';
+                
+                // Campos opcionales
+                if ($dni !== null) {
+                    $fields[] = 'dni';
+                    $placeholders[] = '?';
+                    $values[] = $dni;
+                }
+                
+                // Solo añadir empresa_id si la columna existe
+                if ($empresaId !== null && $empresaColumnExists) {
+                    $fields[] = 'empresa_id';
+                    $placeholders[] = '?';
+                    $values[] = $empresaId;
+                }
+                
+                if ($pais !== null) {
+                    $fields[] = 'pais';
+                    $placeholders[] = '?';
+                    $values[] = $pais;
+                }
+                
+                if ($ciudad !== null) {
+                    $fields[] = 'ciudad';
+                    $placeholders[] = '?';
+                    $values[] = $ciudad;
+                }
+                
+                if ($direccion !== null) {
+                    $fields[] = 'direccion';
+                    $placeholders[] = '?';
+                    $values[] = $direccion;
+                }
+                
+                if ($codigoPostal !== null) {
+                    $fields[] = 'codigo_postal';
+                    $placeholders[] = '?';
+                    $values[] = $codigoPostal;
+                }
+                
+                if ($telefono !== null) {
+                    $fields[] = 'telefono';
+                    $placeholders[] = '?';
+                    $values[] = $telefono;
+                }
+                
+                // Construir y ejecutar la consulta
+                $sql = 'INSERT INTO empleados (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+                error_log("SQL generado: " . $sql);
+                
+                $stmt = $db->prepare($sql);
+                $stmt->execute($values);
+                
+            } catch (PDOException $innerEx) {
+                error_log("Error al insertar empleado: " . $innerEx->getMessage());
+                throw $innerEx;
             }
-            
-            if ($telefono !== null) {
-                $fields[] = 'telefono';
-                $placeholders[] = '?';
-                $values[] = $telefono;
-            }
-            
-            // Construir y ejecutar la consulta
-            $sql = 'INSERT INTO empleados (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
-            error_log("SQL generado: " . $sql);
-            
-            $stmt = $db->prepare($sql);
-            $stmt->execute($values);
         }
         
         logAction($id, 'registro', 'Nuevo usuario registrado');
