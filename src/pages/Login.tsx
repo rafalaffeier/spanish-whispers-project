@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { login } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email("Ingrese un email válido"),
@@ -36,6 +37,7 @@ type FormData = z.infer<typeof formSchema>;
 const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -47,6 +49,8 @@ const Login = () => {
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    setLoginError(null);
+    
     try {
       const { employee } = await login(data.email, data.password);
       
@@ -63,6 +67,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
+      setLoginError(error instanceof Error ? error.message : "Error al iniciar sesión. Verifique sus credenciales.");
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +82,16 @@ const Login = () => {
             Inicia sesión para acceder a tu cuenta
           </p>
         </div>
+
+        {loginError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {loginError}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="border border-gray-200">
           <CardHeader className="space-y-1">
