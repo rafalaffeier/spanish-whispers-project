@@ -26,7 +26,8 @@ export const fetchWithAuth = async (
   options: RequestInit = {}
 ): Promise<any> => {
   try {
-    console.log(`Fetching ${API_BASE_URL}${endpoint}`);
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`Fetching ${fullUrl}`);
     console.log(`Request method: ${options.method || 'GET'}`);
     
     if (options.body) {
@@ -54,11 +55,11 @@ export const fetchWithAuth = async (
 
     // Log completo de la solicitud
     console.log("Enviando solicitud completa:", {
-      url: `${API_BASE_URL}${endpoint}`,
+      url: fullUrl,
       options: JSON.stringify(fetchOptions, null, 2)
     });
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+    const response = await fetch(fullUrl, fetchOptions);
     clearTimeout(timeoutId);
 
     // Log del status de respuesta
@@ -66,6 +67,8 @@ export const fetchWithAuth = async (
 
     // Verificar si la respuesta es un archivo
     const contentType = response.headers.get('content-type');
+    console.log(`Content-Type de respuesta: ${contentType}`);
+    
     if (contentType && contentType.includes('application/octet-stream')) {
       return response.blob();
     }
@@ -90,13 +93,19 @@ export const fetchWithAuth = async (
     // Log del texto de respuesta
     console.log("Response text:", text);
     
+    // Verificar si el texto parece HTML (podría indicar un error de enrutamiento)
+    if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
+      console.error('La respuesta parece ser HTML en lugar de JSON:', text.substring(0, 200) + '...');
+      throw new Error('El servidor respondió con HTML en lugar de JSON. Posible problema de configuración de API.');
+    }
+    
     try {
       data = text ? JSON.parse(text) : {};
       console.log("Response data parsed:", data);
     } catch (e) {
       console.error('Error al parsear respuesta como JSON:', e);
       console.error('Texto de respuesta:', text);
-      throw new Error('Error al procesar la respuesta del servidor');
+      throw new Error(`Error al procesar la respuesta del servidor: ${text.substring(0, 100)}...`);
     }
 
     // Si hay un error del lado del servidor
