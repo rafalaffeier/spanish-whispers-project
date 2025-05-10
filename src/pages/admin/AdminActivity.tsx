@@ -54,12 +54,12 @@ const AdminActivity = () => {
                         </div>
                         <div className="text-right">
                           <span className={`inline-block px-2 py-1 rounded text-xs ${
-                            activity.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            activity.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                            activity.status === 'finished' ? 'bg-green-100 text-green-800' : 
+                            activity.status === 'active' ? 'bg-blue-100 text-blue-800' :
                             'bg-yellow-100 text-yellow-800'
                           }`}>
-                            {activity.status === 'completed' ? 'Completado' : 
-                             activity.status === 'in-progress' ? 'En progreso' : 'Pausado'}
+                            {activity.status === 'finished' ? 'Completado' : 
+                             activity.status === 'active' ? 'En progreso' : 'Pausado'}
                           </span>
                         </div>
                       </div>

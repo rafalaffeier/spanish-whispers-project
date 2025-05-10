@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ const formSchema = z.object({
   companyName: z.string().min(2, 'El nombre de la empresa es requerido').optional(),
   companyNif: z.string().min(9, 'El NIF/CIF de la empresa debe tener al menos 9 caracteres').optional(),
   province: z.string().min(2, 'La provincia es requerida').optional(),
-  companyAddress: z.string().min(5, 'La dirección de la empresa es requerida').optional(),
+  companyAddress: z.string().min(5, 'La dirección del empleado es requerida').optional(),
   zipCode: z.string().min(5, 'El código postal debe tener al menos 5 caracteres').optional(),
   country: z.string().min(2, 'El país es requerido'),
   phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos'),
@@ -40,6 +40,7 @@ const Register = () => {
   const [isEmployee, setIsEmployee] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [companyNameFromNif, setCompanyNameFromNif] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,6 +61,37 @@ const Register = () => {
       confirmPassword: ''
     },
   });
+  
+  // Observar el valor del NIF de la empresa para autocompletar el nombre
+  const companyNif = useWatch({
+    control: form.control,
+    name: 'companyNif'
+  });
+  
+  // Efecto para simular la búsqueda de la empresa por NIF
+  // En un escenario real, esto sería una llamada a la API
+  useEffect(() => {
+    if (companyNif && isEmployee && companyNif.length >= 9) {
+      // Aquí se haría la llamada al backend para buscar la empresa
+      // Por ahora simulamos una respuesta después de un breve retraso
+      const timer = setTimeout(() => {
+        if (companyNif === "B12345678") {
+          setCompanyNameFromNif("APLIUM APLICACIONES TELEMATICAS SL");
+          form.setValue('companyName', "APLIUM APLICACIONES TELEMATICAS SL");
+        } else if (companyNif === "A87654321") {
+          setCompanyNameFromNif("Empresa Ejemplo S.A.");
+          form.setValue('companyName', "Empresa Ejemplo S.A.");
+        } else {
+          setCompanyNameFromNif("");
+          form.setValue('companyName', "");
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setCompanyNameFromNif("");
+    }
+  }, [companyNif, isEmployee, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -204,9 +236,20 @@ const Register = () => {
                         <div className="flex items-center justify-center bg-gray-100 px-4">
                           <Building className="h-5 w-5 text-gray-500" />
                         </div>
-                        <Input placeholder="Nombre de la empresa" className="border-0 flex-1" {...field} />
+                        <Input 
+                          placeholder="Nombre de la empresa" 
+                          className="border-0 flex-1" 
+                          value={isEmployee && companyNameFromNif ? companyNameFromNif : field.value} 
+                          onChange={field.onChange}
+                          readOnly={isEmployee} 
+                        />
                       </div>
                     </FormControl>
+                    {isEmployee && companyNif && companyNif.length >= 9 && !companyNameFromNif && (
+                      <div className="text-sm text-amber-600 mt-1">
+                        No se encontró ninguna empresa con ese NIF/CIF
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -258,7 +301,7 @@ const Register = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Calle de la empresa" {...field} />
+                      <Input placeholder={isEmployee ? "Calle del empleado" : "Calle de la empresa"} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
