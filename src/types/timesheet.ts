@@ -56,7 +56,7 @@ export interface PasswordResetRequest {
 // Datos para confirmar la recuperación de contraseña
 export interface PasswordResetConfirm {
   token: string;
-  email?: string;  // Haciendo email opcional para corregir error
+  email?: string;
   password: string;
   confirmPassword?: string;
 }
@@ -120,7 +120,7 @@ export interface TimesheetEntry {
   incidencia?: string;
   totalTime?: number;
   
-  // Haciendo location opcional para resolver errores
+  // Haciendo location explícitamente opcional
   location?: LocationData;
 }
 

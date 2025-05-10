@@ -23,7 +23,16 @@ export const fetchWithAuth = async (
 
     console.log(`Making API request to: ${API_BASE_URL}${url}`);
     console.log('Request headers:', headers);
-    console.log('Request body:', options.body);
+    
+    // Registro más detallado del cuerpo para fines de depuración
+    if (options.body) {
+      try {
+        const bodyObj = JSON.parse(options.body.toString());
+        console.log('Request body:', bodyObj);
+      } catch (e) {
+        console.log('Request body:', options.body);
+      }
+    }
     
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
@@ -98,6 +107,23 @@ export const fetchWithAuth = async (
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('text/html')) {
       console.log("Recibido HTML en vez de JSON:", contentType);
+      
+      try {
+        const htmlContent = await response.text();
+        // Intentar buscar un mensaje JSON dentro del HTML (caso común en errores de servidor)
+        const jsonMatch = htmlContent.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          try {
+            return JSON.parse(jsonMatch[0]);
+          } catch (e) {
+            console.error("No se pudo extraer JSON del HTML:", e);
+          }
+        }
+        console.log("Contenido HTML recibido (primeros 200 caracteres):", htmlContent.substring(0, 200));
+      } catch (e) {
+        console.error("Error al leer contenido HTML:", e);
+      }
+      
       // Devolver un array vacío o un objeto según el contexto
       return url.includes('jornadas') ? [] : {};
     }
@@ -108,6 +134,12 @@ export const fetchWithAuth = async (
       return responseData;
     } catch (jsonError) {
       console.error("Error al parsear JSON:", jsonError);
+      
+      try {
+        const textResponse = await response.text();
+        console.log("Respuesta texto (no-JSON):", textResponse);
+      } catch (e) {}
+      
       // En caso de error de parseo, devolver un resultado vacío según contexto
       return url.includes('jornadas') ? [] : {};
     }
@@ -134,8 +166,18 @@ export const fetchWithAuth = async (
   }
 };
 
+// Función para convertir valores que pueden ser string o Date a Date
+export const ensureDate = (value: string | Date | null): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  return new Date(value);
+};
+
 // Funciones para formateo de datos
-export const formatDateForApi = (date: Date | string): string => {
+export const formatDateForApi = (date: Date | string | null): string => {
+  // Si es null, devolver cadena vacía
+  if (date === null) return '';
+  
   // Si ya es un string, devolverlo directamente
   if (typeof date === 'string') {
     return date;

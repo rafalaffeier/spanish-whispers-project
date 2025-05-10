@@ -94,7 +94,10 @@ export const register = async (data: RegistrationData): Promise<void> => {
     const response = await fetchWithAuth('/registro', {
       method: 'POST',
       body: JSON.stringify(apiData),
-      signal: controller.signal
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
     clearTimeout(timeoutId);

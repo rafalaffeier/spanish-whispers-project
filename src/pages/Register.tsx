@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -13,6 +12,7 @@ import { toast } from 'sonner';
 import { ChevronDown, Mail, Lock, User, Building, MapPin, Phone } from 'lucide-react';
 import { RegistrationData } from '@/types/timesheet';
 import { register as registerUser } from '@/services/authService';
+import { Textarea } from '@/components/ui/textarea';
 
 // Esquema de validación del formulario
 const formSchema = z.object({
@@ -59,6 +59,7 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [companyNameFromNif, setCompanyNameFromNif] = useState<string>("");
+  const [debugMode, setDebugMode] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -117,14 +118,22 @@ const Register = () => {
     try {
       console.log("Enviando datos de registro:", values);
       
-      // Verificaciones adicionales para campos requeridos
+      // Verificaciones adicionales para campos requeridos según el tipo
       if (values.type === 'company') {
         if (!values.companyName || !values.companyNif) {
           throw new Error('El nombre y NIF/CIF de la empresa son obligatorios');
         }
+        
+        if (!values.companyAddress) {
+          throw new Error('La dirección de la empresa es obligatoria');
+        }
       } else if (values.type === 'employee') {
         if (!values.firstName || !values.lastName || !values.dni) {
           throw new Error('Nombre, apellidos y DNI/NIE del empleado son obligatorios');
+        }
+        
+        if (!values.companyNif) {
+          throw new Error('El NIF/CIF de la empresa donde trabajas es obligatorio');
         }
       }
 
@@ -138,6 +147,11 @@ const Register = () => {
       
       // Enviar datos al backend con un timeout para evitar bloqueos indefinidos
       toast.info('Enviando datos de registro...');
+      
+      // Activar modo debug para registro de empresa
+      if (values.type === 'company') {
+        console.log("REGISTRO DE EMPRESA:", JSON.stringify(values, null, 2));
+      }
       
       try {
         await registerUser(values as RegistrationData);
@@ -360,10 +374,10 @@ const Register = () => {
                 control={form.control}
                 name="companyAddress"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>{isEmployee ? "Dirección del empleado" : "Dirección de la empresa"}</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Textarea 
                         placeholder={isEmployee ? "Dirección del empleado" : "Dirección de la empresa"} 
                         {...field} 
                       />
@@ -470,7 +484,7 @@ const Register = () => {
             </div>
 
             {/* Botón de enviar */}
-            <div>
+            <div className="flex justify-between">
               <Button 
                 type="submit" 
                 className="bg-[#5271FF] hover:bg-[#3a55d9] text-white px-8 py-2"
@@ -478,7 +492,28 @@ const Register = () => {
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar'}
               </Button>
+              
+              {/* Botón para activar modo debug - visible solo en desarrollo */}
+              {process.env.NODE_ENV === 'development' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDebugMode(!debugMode)}
+                >
+                  {debugMode ? "Desactivar Debug" : "Activar Debug"}
+                </Button>
+              )}
             </div>
+            
+            {/* Panel de debug */}
+            {debugMode && (
+              <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h3 className="text-sm font-medium mb-2">Datos del formulario:</h3>
+                <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-40">
+                  {JSON.stringify(form.getValues(), null, 2)}
+                </pre>
+              </div>
+            )}
           </form>
         </Form>
 
