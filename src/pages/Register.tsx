@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -148,9 +149,11 @@ const Register = () => {
       if (companyNif && isEmployee && companyNif.length >= 8) {
         try {
           setIsCheckingCompany(true);
+          setCompanyVerified(false);
+          setCompanyNameFromNif("");
           addToLog(`Verificando empresa con NIF: ${companyNif}`);
           
-          // Añadir un retraso corto para evitar demasiadas solicitudes durante la escritura
+          // Realizar la verificación de la empresa
           const result = await verifyCompanyByNif(companyNif);
           
           if (result.exists && result.company) {
@@ -174,8 +177,10 @@ const Register = () => {
           setIsCheckingCompany(false);
         }
       } else {
-        setCompanyNameFromNif("");
-        setCompanyVerified(false);
+        if (!isEmployee || companyNif.length < 8) {
+          setCompanyNameFromNif("");
+          setCompanyVerified(false);
+        }
       }
     };
     
@@ -394,9 +399,9 @@ const Register = () => {
                         <Input 
                           placeholder={isCheckingCompany ? "Verificando empresa..." : "Nombre de la empresa"} 
                           className="border-0 flex-1" 
-                          value={isEmployee && companyNameFromNif ? companyNameFromNif : field.value} 
+                          value={isEmployee && companyVerified ? companyNameFromNif : field.value}
                           onChange={field.onChange}
-                          readOnly={isEmployee} 
+                          readOnly={isEmployee && companyVerified} 
                         />
                       </div>
                     </FormControl>

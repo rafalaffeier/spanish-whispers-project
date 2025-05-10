@@ -4,13 +4,6 @@ import { fetchWithAuth, normalizeNif } from './apiHelpers';
 import { toast } from "sonner";
 import { API_BASE_URL } from './apiConfig';
 
-// Mock data para empresas conocidas (para desarrolladores)
-const MOCK_COMPANIES = [
-  { nif: 'Y8619064N', name: 'Fluss Creative' },
-  { nif: 'B12345678', name: 'APLIUM APLICACIONES TELEMATICAS SL' },
-  { nif: 'A87654321', name: 'Empresa Ejemplo S.A.' }
-];
-
 // Verificar si una empresa existe por su NIF/CIF
 export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean, company?: {id: string, name: string}}> => {
   try {
@@ -23,37 +16,51 @@ export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean,
     const normalizedNif = normalizeNif(nif);
     console.log(`[COMPANY SERVICE] Verificando empresa con NIF normalizado: ${normalizedNif}`);
     
-    // Verificar en datos mock primero (para desarrollo)
-    const mockCompany = MOCK_COMPANIES.find(c => normalizeNif(c.nif) === normalizedNif);
-    if (mockCompany) {
-      console.log('[COMPANY SERVICE] Empresa encontrada en datos mock:', mockCompany);
-      return {
-        exists: true,
-        company: {
-          id: normalizedNif, // ID temporal
-          name: mockCompany.name
-        }
-      };
-    }
-    
     // Verificar usando la API
     try {
       const response = await fetch(`${API_BASE_URL}/empresas/verify?nif=${encodeURIComponent(normalizedNif)}`);
-      const data = await response.json();
       
-      if (data && data.exists) {
-        console.log('[COMPANY SERVICE] Empresa encontrada en la API:', data.company);
-        return {
-          exists: true,
-          company: {
-            id: data.company.id,
-            name: data.company.nombre
-          }
-        };
+      // Log de la respuesta completa para depuración
+      const responseText = await response.text();
+      try {
+        const data = JSON.parse(responseText);
+        
+        if (data && data.exists) {
+          console.log('[COMPANY SERVICE] Empresa encontrada en la API:', data.company);
+          return {
+            exists: true,
+            company: {
+              id: data.company.id,
+              name: data.company.nombre
+            }
+          };
+        }
+      } catch (jsonError) {
+        console.error('[COMPANY SERVICE] Error al parsear respuesta JSON:', jsonError);
+        console.log('[COMPANY SERVICE] Respuesta recibida:', responseText);
       }
     } catch (apiError) {
       console.error('[COMPANY SERVICE] Error al verificar con API:', apiError);
-      // Continuar con la lógica para no bloquear el flujo
+    }
+    
+    // Fallback al no encontrar la empresa, intentar con la API de búsqueda directa
+    try {
+      console.log(`[COMPANY SERVICE] Intentando búsqueda directa de empresa con NIF: ${normalizedNif}`);
+      const response = await fetch(`${API_BASE_URL}/empresas?nif=${encodeURIComponent(normalizedNif)}`);
+      const data = await response.json();
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        console.log('[COMPANY SERVICE] Empresa encontrada en búsqueda directa:', data[0]);
+        return {
+          exists: true,
+          company: {
+            id: data[0].id,
+            name: data[0].nombre
+          }
+        };
+      }
+    } catch (directSearchError) {
+      console.error('[COMPANY SERVICE] Error en búsqueda directa:', directSearchError);
     }
     
     // Si llegamos aquí, la empresa no existe
