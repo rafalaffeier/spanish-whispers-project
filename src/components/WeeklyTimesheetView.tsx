@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { TimesheetEntry, PauseRecord } from '@/types/timesheet';
 import { 
@@ -13,6 +12,7 @@ import { Clock, MapPin } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from './ui/button';
+import { ensureDate } from '@/utils/dateUtils';
 
 interface WeeklyTimesheetViewProps {
   timesheets: TimesheetEntry[];
@@ -110,10 +110,10 @@ const formatDate = (dateStr: string): string => {
 };
 
 // Helper to format time
-const formatTime = (date: Date | null): string => {
+const formatTime = (date: Date | string | null): string => {
   if (!date) return '--:--:--';
   try {
-    return format(new Date(date), 'HH:mm:ss');
+    return format(ensureDate(date) || new Date(), 'HH:mm:ss');
   } catch (e) {
     return '--:--:--';
   }

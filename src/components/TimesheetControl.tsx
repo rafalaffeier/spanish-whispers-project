@@ -7,6 +7,7 @@ import TimesheetInfo from '@/components/timesheet/TimesheetInfo';
 import TimesheetSignatureDialog from '@/components/timesheet/TimesheetSignatureDialog';
 import PauseDialog from '@/components/timesheet/PauseDialog';
 import PausesList from '@/components/timesheet/PausesList';
+import { ensureDate } from '@/utils/dateUtils';
 
 interface TimesheetControlProps {
   employee: { id: string; name: string; role: string };
@@ -53,7 +54,7 @@ const TimesheetControl: React.FC<TimesheetControlProps> = ({
         />
         
         <TimesheetInfo 
-          startTime={timesheet.startTime} 
+          startTime={ensureDate(timesheet.startTime)} 
           elapsedTime={elapsedTime} 
         />
         

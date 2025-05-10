@@ -23,6 +23,7 @@ import {
 import { format } from 'date-fns';
 import WeeklyTimesheetView from './WeeklyTimesheetView';
 import MonthlyTimesheetView from './MonthlyTimesheetView';
+import { ensureDate } from '@/utils/dateUtils';
 
 interface TimesheetTableProps {
   timesheets: TimesheetEntry[];
@@ -44,7 +45,7 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({
   }
 
   // Para la vista diaria mantenemos el componente original
-  const formatTime = (date: Date | null) => {
+  const formatTime = (date: Date | string | null) => {
     if (!date) return '---';
     return new Date(date).toLocaleTimeString();
   };
@@ -99,8 +100,8 @@ const TimesheetTable: React.FC<TimesheetTableProps> = ({
 
   // Helper function to format pause details
   const formatPauseDetails = (pause: PauseRecord) => {
-    const startTime = format(new Date(pause.startTime), 'HH:mm:ss');
-    const endTime = pause.endTime ? format(new Date(pause.endTime), 'HH:mm:ss') : 'En curso';
+    const startTime = format(ensureDate(pause.startTime) || new Date(), 'HH:mm:ss');
+    const endTime = pause.endTime ? format(ensureDate(pause.endTime) || new Date(), 'HH:mm:ss') : 'En curso';
     return `${startTime} - ${endTime}: ${pause.reason}`;
   };
 

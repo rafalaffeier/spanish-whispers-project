@@ -1,8 +1,6 @@
-
 // Servicios para jornadas laborales
 import { TimesheetEntry, PauseRecord } from '@/types/timesheet';
-import { fetchWithAuth } from './apiHelpers';
-import { mapStatusFromApi, formatDateForApi } from './apiHelpers';
+import { fetchWithAuth, mapStatusFromApi, formatDateForApi } from './apiHelpers';
 
 // Obtener todas las jornadas
 export const getTimesheets = async (): Promise<TimesheetEntry[]> => {

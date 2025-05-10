@@ -4,6 +4,22 @@ import { toast } from "sonner";
 import { API_BASE_URL, getAuthToken } from './apiConfig';
 import { isValidDate, toSafeDate } from '@/utils/dateUtils';
 
+// Función para mapear el estado de la API al formato de la aplicación
+export const mapStatusFromApi = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'no_iniciada': 'not_started',
+    'activa': 'active',
+    'pausada': 'paused',
+    'finalizada': 'finished'
+  };
+  return statusMap[status] || status;
+};
+
+// Función para formatear una fecha para la API
+export const formatDateForApi = (date: Date): string => {
+  return date.toISOString();
+};
+
 // Función base para peticiones HTTP con mejor manejo de errores
 export const fetchWithAuth = async (
   endpoint: string, 
