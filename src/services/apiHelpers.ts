@@ -136,8 +136,13 @@ export const fetchWithAuth = async (
 
 // Funciones para formateo de datos
 export const formatDateForApi = (date: Date | string): string => {
-  const dateObj = date instanceof Date ? date : new Date(date);
-  return dateObj.toISOString();
+  // Si ya es un string, devolverlo directamente
+  if (typeof date === 'string') {
+    return date;
+  }
+  
+  // Si es una fecha, convertirla a ISO string
+  return date.toISOString();
 };
 
 // Mapeos de estados
