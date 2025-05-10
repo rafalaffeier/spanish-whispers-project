@@ -48,8 +48,8 @@ const fetchWithAuth = async (
       ...options.headers,
     };
 
-    // Añadir token de autenticación si existe
-    if (authToken) {
+    // Añadir token de autenticación si existe Y la URL no es para login o registro
+    if (authToken && !url.includes('/login') && !url.includes('/registro')) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
@@ -70,8 +70,8 @@ const fetchWithAuth = async (
 
     // Verificar si la respuesta es exitosa
     if (!response.ok) {
-      // Si es 401 Unauthorized, limpiar autenticación
-      if (response.status === 401) {
+      // Si es 401 Unauthorized, limpiar autenticación solo si no estamos en login o registro
+      if (response.status === 401 && !url.includes('/login') && !url.includes('/registro')) {
         clearAuth();
       }
 
@@ -356,6 +356,8 @@ export const login = async (email: string, password: string): Promise<{
 
 // Función para registrar usuarios (empleados o empresas)
 export const register = async (data: RegistrationData): Promise<void> => {
+  console.log("Enviando datos de registro:", data);
+  
   // Preparar datos para la API según si es empresa o empleado
   const apiData: Record<string, any> = {
     type: data.type,
@@ -385,10 +387,15 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.phone = data.phone;
   }
 
-  await fetchWithAuth('/registro', {
-    method: 'POST',
-    body: JSON.stringify(apiData),
-  });
+  try {
+    await fetchWithAuth('/registro', {
+      method: 'POST',
+      body: JSON.stringify(apiData),
+    });
+  } catch (error) {
+    console.error("Error durante el registro:", error);
+    throw error;
+  }
 };
 
 // Funciones para recuperación de contraseña

@@ -1,3 +1,4 @@
+
 <?php
 // API RESTful principal
 require_once 'config.php';
@@ -10,13 +11,20 @@ $apiEndpoint = $segments[count($segments) - 1] ?? '';
 // Rutas públicas (no requieren autenticación)
 $publicRoutes = ['login', 'registro', 'health', 'recuperar-password', 'reset-password'];
 
+// Verificar si es una ruta pública o si necesita autenticación
 if (!in_array($apiEndpoint, $publicRoutes) && $apiEndpoint != '') {
+    // Para depuración
+    error_log("Ruta requiere autenticación: " . $apiEndpoint);
+    
     $userId = getAuthenticatedUser();
     if (!$userId) {
         http_response_code(401);
         echo json_encode(['error' => 'No autorizado']);
         exit;
     }
+} else {
+    // Para depuración
+    error_log("Ruta pública: " . $apiEndpoint);
 }
 
 // Enrutamiento básico
