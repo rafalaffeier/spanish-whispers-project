@@ -80,8 +80,23 @@ switch ($apiEndpoint) {
         response(['status' => 'ok']);
         break;
     
+    case 'empresas':
+        require 'empresas.php';
+        break;
+        
     default:
-        http_response_code(404);
-        echo json_encode(['error' => 'Ruta no encontrada']);
-        exit;
+        if ($segments[count($segments) - 2] === 'empresas' && $apiEndpoint === 'verify') {
+            // Ruta especial para verificación de empresa
+            if (isset($_GET['nif'])) {
+                require_once 'empresas.php';
+                handleCompanyVerification($_GET['nif']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['error' => 'NIF no proporcionado']);
+            }
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Ruta no encontrada']);
+            exit;
+        }
 }
