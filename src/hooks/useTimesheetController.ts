@@ -42,7 +42,7 @@ export const useTimesheetController = ({
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
   const [pauseReason, setPauseReason] = useState('');
-  const { location, getLocation } = useGeolocation();
+  const { location, getLocation, error: geoError } = useGeolocation();
 
   // Calcular tiempo transcurrido
   useEffect(() => {
@@ -105,10 +105,26 @@ export const useTimesheetController = ({
 
   const startDay = async () => {
     try {
+      // Primero intentamos obtener la ubicación
       await getLocation();
+      
+      // Si hay un error de geolocalización, mostramos un mensaje pero continuamos
+      if (geoError) {
+        console.warn("Error de geolocalización:", geoError);
+        toast({
+          title: "Advertencia",
+          description: "No se pudo obtener la ubicación. La jornada se iniciará sin datos de ubicación.",
+          variant: "default"
+        });
+      }
+      
+      console.log("Iniciando jornada para el empleado:", employee.id);
+      console.log("Datos de ubicación disponibles:", location ? "Sí" : "No");
       
       // Llamar a la API para iniciar jornada
       const updatedTimesheet = await api.startTimesheet(employee.id, location);
+      
+      console.log("Jornada iniciada correctamente:", updatedTimesheet);
       
       setTimesheet(updatedTimesheet);
       onUpdate(updatedTimesheet);
@@ -118,10 +134,23 @@ export const useTimesheetController = ({
         description: "Has iniciado tu jornada laboral correctamente.",
       });
     } catch (error) {
-      console.error("Error starting timesheet:", error);
+      console.error("Error al iniciar la jornada:", error);
+      
+      // Mensaje de error más descriptivo
+      let errorMessage = "No se pudo iniciar la jornada.";
+      
+      if (error instanceof Error) {
+        errorMessage += " " + error.message;
+      }
+      
+      // Si es un problema de red, sugerimos verificar la conexión
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        errorMessage = "Error de conexión. Verifica tu conexión a internet e inténtalo de nuevo.";
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo iniciar la jornada.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -144,6 +173,13 @@ export const useTimesheetController = ({
     try {
       if (!timesheet.id) {
         throw new Error("ID de jornada no disponible");
+      }
+      
+      // Intentamos obtener la ubicación pero continuamos incluso si falla
+      try {
+        await getLocation();
+      } catch (geoErr) {
+        console.warn("Error al obtener ubicación para pausa:", geoErr);
       }
       
       // Llamar a la API para pausar jornada
@@ -178,6 +214,13 @@ export const useTimesheetController = ({
         throw new Error("ID de jornada no disponible");
       }
       
+      // Intentamos obtener la ubicación pero continuamos incluso si falla
+      try {
+        await getLocation();
+      } catch (geoErr) {
+        console.warn("Error al obtener ubicación para reanudar:", geoErr);
+      }
+      
       // Llamar a la API para reanudar jornada
       await api.resumeTimesheet(timesheet.id, location);
       
@@ -203,7 +246,12 @@ export const useTimesheetController = ({
 
   const endDay = async () => {
     try {
-      await getLocation();
+      // Intentamos obtener la ubicación pero continuamos incluso si falla
+      try {
+        await getLocation();
+      } catch (geoErr) {
+        console.warn("Error al obtener ubicación para finalizar:", geoErr);
+      }
       
       if (!timesheet.id) {
         throw new Error("ID de jornada no disponible");
