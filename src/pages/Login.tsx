@@ -59,8 +59,8 @@ const Login = () => {
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
       
-      // Redirigir según el rol del usuario
-      if (employee.isCompany || employee.role === 'empleador' || employee.role === 'empresa' || employee.role === 'admin') {
+      // Redirigir según el rol del usuario (solo empleador o empleado)
+      if (employee.isCompany || employee.role === 'empleador') {
         navigate("/admin");
       } else {
         navigate("/employee");

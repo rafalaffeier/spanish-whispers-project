@@ -186,13 +186,10 @@ CREATE TABLE IF NOT EXISTS logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Inserta roles por defecto (cambiamos 'administrador' por 'empleador')
+-- Inserta solo dos roles: empleador y empleado
 INSERT INTO roles (nombre, descripcion) VALUES 
 ('empleador', 'Acceso a administración y seguimiento de empleados'),
-('empleado', 'Acceso a registro de jornada propio'),
-('supervisor', 'Acceso a registros de empleados bajo su supervisión'),
-('rrhh', 'Acceso a reportes y gestión de personal'),
-('empresa', 'Acceso como empresa empleadora');
+('empleado', 'Acceso a registro de jornada propio');
 
 -- Inserta departamentos de ejemplo
 INSERT INTO departamentos (nombre, descripcion) VALUES 

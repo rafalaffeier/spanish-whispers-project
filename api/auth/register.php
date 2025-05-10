@@ -46,19 +46,19 @@ function handleRegistro() {
             exit;
         }
         
-        // Determinar si es registro de empresa o empleado
+        // Determinar si es registro de empresa (empleador) o empleado
         // Si es_empresa está definido, lo usamos; si no, verificamos type
         if (isset($data['es_empresa'])) {
-            $esEmpresa = $data['es_empresa'] === true;
+            $esEmpleador = $data['es_empresa'] === true;
         } else if (isset($data['type'])) {
-            $esEmpresa = $data['type'] === 'company';
+            $esEmpleador = $data['type'] === 'company';
         } else {
-            $esEmpresa = false;
+            $esEmpleador = false;
         }
         
         // Debug para empresa
-        if ($esEmpresa) {
-            error_log("Registrando EMPRESA: " . json_encode($data));
+        if ($esEmpleador) {
+            error_log("Registrando EMPLEADOR: " . json_encode($data));
         } else {
             error_log("Registrando EMPLEADO: " . json_encode($data));
         }
@@ -74,15 +74,15 @@ function handleRegistro() {
             // 1. Crear el registro de usuario (común para ambos)
             $password = password_hash($data['password'], PASSWORD_DEFAULT);
             
-            // Rol: 1 para empleador (empresa), 2 para empleado
-            $rolId = $esEmpresa ? 1 : 2;
+            // Rol: 1 para empleador, 2 para empleado
+            $rolId = $esEmpleador ? 1 : 2;
             
             // Insertar usuario
             $stmt = $db->prepare('INSERT INTO users (id, email, password, rol_id, activo) VALUES (?, ?, ?, ?, 1)');
             $stmt->execute([$userId, $data['email'], $password, $rolId]);
             
             // 2. Crear registro específico según tipo
-            if ($esEmpresa) {
+            if ($esEmpleador) {
                 // Datos de empresa
                 $nombreEmpresa = $data['nombre'] ?? $data['companyName'] ?? '';
                 $nifEmpresa = $data['nif'] ?? $data['companyNif'] ?? '';
@@ -179,14 +179,14 @@ function handleRegistro() {
             $db->commit();
             
             // Registrar acción exitosa
-            logAction($userId, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
+            logAction($userId, 'registro', $esEmpleador ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
             
             // Responder con éxito
             response([
                 'message' => $mensaje, 
                 'id' => $userId, 
                 'entityId' => $entidadId,
-                'type' => $esEmpresa ? 'company' : 'employee'
+                'type' => $esEmpleador ? 'company' : 'employee'
             ]);
             
         } catch (Exception $e) {

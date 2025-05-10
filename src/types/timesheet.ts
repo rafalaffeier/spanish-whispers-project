@@ -5,7 +5,7 @@ export interface Employee {
   name: string;
   email?: string;
   avatar?: string;
-  role: 'employee' | 'admin' | 'Técnico' | 'Administrativo' | 'Supervisor' | 'empresa' | 'empleador' | 'empleado';
+  role: 'empleado' | 'empleador';
   isCompany?: boolean;
   // Campos para el perfil
   firstName?: string;

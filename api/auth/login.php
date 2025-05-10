@@ -49,18 +49,17 @@ function handleLogin() {
             exit;
         }
         
-        // Determinar si es una empresa o empleado
-        $esEmpresa = $usuario['rol_nombre'] === 'empresa'; 
-        $esEmpleador = $usuario['rol_nombre'] === 'empleador';
+        // Determinar si es empleador o empleado
+        $esEmpleador = $usuario['rol_nombre'] === 'empleador'; 
         
         // Obtener información adicional según tipo de usuario
-        if ($esEmpresa || $esEmpleador) {
+        if ($esEmpleador) {
             $stmt = $db->prepare('SELECT * FROM empresas WHERE user_id = ?');
             $stmt->execute([$usuario['id']]);
             $entidad = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$entidad) {
-                error_log("Usuario empresa/empleador sin entidad asociada: {$usuario['id']}");
+                error_log("Usuario empleador sin entidad asociada: {$usuario['id']}");
             }
         } else {
             $stmt = $db->prepare('SELECT e.*, emp.nombre AS nombre_empresa 
@@ -91,8 +90,8 @@ function handleLogin() {
                 'id' => $entityId,
                 'userId' => $usuario['id'],
                 'nombre' => $nombreEntidad ?? 'Usuario',
-                'rol' => $usuario['rol_nombre'],
-                'esEmpresa' => $esEmpresa || $esEmpleador
+                'rol' => $usuario['rol_nombre'], // Solo será 'empleador' o 'empleado'
+                'esEmpresa' => $esEmpleador
             ]
         ];
         
