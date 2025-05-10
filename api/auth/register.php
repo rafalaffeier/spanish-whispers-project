@@ -36,7 +36,7 @@ function handleRegistro() {
         $db = getConnection();
         
         // Verificar si el email ya existe
-        $stmt = $db->prepare('SELECT id FROM empleados WHERE email = ?');
+        $stmt = $db->prepare('SELECT id FROM users WHERE email = ?');
         $stmt->execute([$data['email']]);
         
         if ($stmt->fetch()) {
@@ -63,72 +63,133 @@ function handleRegistro() {
             error_log("Registrando EMPLEADO: " . json_encode($data));
         }
         
-        // Generar ID único
-        $id = generateUUID();
-        
-        // Datos básicos
-        $nombre = $esEmpresa ? ($data['nombre'] ?? '') : ($data['nombre'] ?? '');
-        $apellidos = $esEmpresa ? '' : ($data['apellidos'] ?? '');
-        $password = password_hash($data['password'], PASSWORD_DEFAULT);
-        
-        // Determinar el rol_id (5 para empresa, 2 para empleado normal)
-        $rolId = $esEmpresa ? 5 : 2;
-        
-        // Datos adicionales
-        $dni = $esEmpresa ? ($data['nif'] ?? null) : ($data['dni'] ?? null);
-        $telefono = $data['telefono'] ?? null;
-        $direccion = $data['direccion'] ?? null;
-        $provincia = $data['provincia'] ?? null;
-        $pais = $data['pais'] ?? 'España';
-        $codigoPostal = $data['codigo_postal'] ?? null;
-        
-        if ($esEmpresa && empty($nombre)) {
-            error_log("Falta nombre de empresa");
-            http_response_code(400);
-            echo json_encode(['error' => 'El nombre de la empresa es obligatorio']);
-            exit;
-        }
+        // Generar IDs únicos
+        $userId = generateUUID();
+        $entidadId = generateUUID();
         
         // Iniciar transacción para asegurar consistencia
         $db->beginTransaction();
         
         try {
-            // Consulta SQL para debug
-            $sqlDebug = "INSERT INTO empleados 
-                          (id, nombre, apellidos, email, password, dni, rol_id, 
-                           telefono, direccion, ciudad, pais, codigo_postal, activo) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
-            error_log("SQL a ejecutar: " . $sqlDebug);
-            error_log("Parámetros: " . json_encode([$id, $nombre, $apellidos, $data['email'], 
-                                                  'password_hash', $dni, $rolId, $telefono, 
-                                                  $direccion, $provincia, $pais, $codigoPostal]));
+            // 1. Crear el registro de usuario (común para ambos)
+            $password = password_hash($data['password'], PASSWORD_DEFAULT);
             
-            // Insertar empleado
-            $stmt = $db->prepare($sqlDebug);
-            $stmt->execute([
-                $id,
-                $nombre,
-                $apellidos,
-                $data['email'],
-                $password,
-                $dni,
-                $rolId,
-                $telefono,
-                $direccion,
-                $provincia,
-                $pais,
-                $codigoPostal
-            ]);
+            // Rol: 1 para empleador (empresa), 2 para empleado
+            $rolId = $esEmpresa ? 1 : 2;
+            
+            // Insertar usuario
+            $stmt = $db->prepare('INSERT INTO users (id, email, password, rol_id, activo) VALUES (?, ?, ?, ?, 1)');
+            $stmt->execute([$userId, $data['email'], $password, $rolId]);
+            
+            // 2. Crear registro específico según tipo
+            if ($esEmpresa) {
+                // Datos de empresa
+                $nombreEmpresa = $data['nombre'] ?? $data['companyName'] ?? '';
+                $nifEmpresa = $data['nif'] ?? $data['companyNif'] ?? '';
+                $telefono = $data['telefono'] ?? $data['phone'] ?? '';
+                $direccion = $data['direccion'] ?? $data['companyAddress'] ?? '';
+                $provincia = $data['provincia'] ?? $data['province'] ?? '';
+                $codigoPostal = $data['codigo_postal'] ?? $data['zipCode'] ?? '';
+                $pais = $data['pais'] ?? $data['country'] ?? 'España';
+                
+                // Validar datos críticos
+                if (empty($nombreEmpresa)) {
+                    throw new Exception("El nombre de la empresa es obligatorio");
+                }
+                
+                // Insertar empresa
+                $stmt = $db->prepare('INSERT INTO empresas 
+                    (id, user_id, nombre, nif, telefono, direccion, provincia, codigo_postal, pais, email) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $entidadId,
+                    $userId,
+                    $nombreEmpresa,
+                    $nifEmpresa,
+                    $telefono,
+                    $direccion,
+                    $provincia,
+                    $codigoPostal,
+                    $pais,
+                    $data['email']
+                ]);
+                
+                $mensaje = 'Empresa registrada correctamente';
+            } else {
+                // Si es empleado, necesitamos la empresa asociada
+                if (!isset($data['companyNif']) && !isset($data['empresa_id'])) {
+                    throw new Exception("Se requiere NIF de empresa o ID de empresa para registrar empleado");
+                }
+                
+                // Buscar la empresa por NIF si se proporciona
+                $empresaId = null;
+                if (isset($data['companyNif']) && !empty($data['companyNif'])) {
+                    $stmt = $db->prepare('SELECT id FROM empresas WHERE nif = ?');
+                    $stmt->execute([$data['companyNif']]);
+                    $empresa = $stmt->fetch();
+                    
+                    if (!$empresa) {
+                        throw new Exception("No existe una empresa con el NIF proporcionado");
+                    }
+                    
+                    $empresaId = $empresa['id'];
+                } else if (isset($data['empresa_id'])) {
+                    $empresaId = $data['empresa_id'];
+                }
+                
+                // Datos del empleado
+                $nombre = $data['nombre'] ?? $data['firstName'] ?? '';
+                $apellidos = $data['apellidos'] ?? $data['lastName'] ?? '';
+                $dni = $data['dni'] ?? '';
+                $telefono = $data['telefono'] ?? $data['phone'] ?? '';
+                $direccion = $data['direccion'] ?? $data['companyAddress'] ?? '';
+                $ciudad = $data['ciudad'] ?? $data['city'] ?? $data['province'] ?? '';
+                $provincia = $data['provincia'] ?? $data['province'] ?? '';
+                $codigoPostal = $data['codigo_postal'] ?? $data['zipCode'] ?? '';
+                $pais = $data['pais'] ?? $data['country'] ?? 'España';
+                
+                // Validar datos críticos
+                if (empty($nombre) || empty($apellidos)) {
+                    throw new Exception("El nombre y apellidos son obligatorios");
+                }
+                
+                // Insertar empleado
+                $stmt = $db->prepare('INSERT INTO empleados 
+                    (id, user_id, empresa_id, nombre, apellidos, dni, 
+                     telefono, direccion, ciudad, codigo_postal, pais) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $entidadId,
+                    $userId,
+                    $empresaId,
+                    $nombre,
+                    $apellidos,
+                    $dni,
+                    $telefono,
+                    $direccion,
+                    $ciudad,
+                    $codigoPostal,
+                    $pais
+                ]);
+                
+                $mensaje = 'Empleado registrado correctamente';
+            }
             
             // Confirmar transacción
             $db->commit();
             
             // Registrar acción exitosa
-            logAction($id, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
+            logAction($userId, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
             
             // Responder con éxito
-            response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente', 'id' => $id]);
-        } catch (PDOException $e) {
+            response([
+                'message' => $mensaje, 
+                'id' => $userId, 
+                'entityId' => $entidadId,
+                'type' => $esEmpresa ? 'company' : 'employee'
+            ]);
+            
+        } catch (Exception $e) {
             // Revertir transacción en caso de error
             $db->rollBack();
             throw $e; // Re-lanzar para capturar en el bloque principal

@@ -1,10 +1,11 @@
 
 export interface Employee {
   id: string;
+  userId?: string; // ID del usuario en la tabla users
   name: string;
   email?: string;
   avatar?: string;
-  role: 'employee' | 'admin' | 'Técnico' | 'Administrativo' | 'Supervisor' | 'empresa' | 'administrador' | 'empleado';
+  role: 'employee' | 'admin' | 'Técnico' | 'Administrativo' | 'Supervisor' | 'empresa' | 'empleador' | 'empleado';
   isCompany?: boolean;
   // Campos para el perfil
   firstName?: string;
@@ -63,6 +64,7 @@ export type TimesheetPeriod = 'daily' | 'weekly' | 'monthly';
 // Añadimos la interface para la empresa
 export interface Company {
   id: number;
+  userId?: string; // ID del usuario en la tabla users
   name: string;
   cifNif: string;
   address: string;

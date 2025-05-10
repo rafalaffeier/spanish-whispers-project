@@ -9,6 +9,7 @@ export const getEmployees = async (): Promise<Employee[]> => {
   // Mapear respuesta de API a formato de la aplicación
   return data.map((emp: any) => ({
     id: emp.id,
+    userId: emp.user_id,
     name: emp.nombre,
     email: emp.email,
     avatar: emp.avatar,
@@ -32,6 +33,7 @@ export const getEmployee = async (id: string): Promise<Employee> => {
   const data = await fetchWithAuth(`/empleados?id=${id}`);
   return {
     id: data.id,
+    userId: data.user_id,
     name: data.nombre,
     email: data.email,
     avatar: data.avatar,

@@ -51,11 +51,11 @@ function getAuthenticatedUser() {
     // En un sistema real, se usaría JWT o similar
     try {
         $db = getConnection();
-        $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
+        $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
         
         if ($stmt->rowCount() === 1) {
-            return $token; // ID del empleado autenticado
+            return $token; // ID del usuario autenticado
         }
         
         return false;
@@ -66,15 +66,15 @@ function getAuthenticatedUser() {
 }
 
 // Función para registrar acciones en el log
-function logAction($empleado_id, $accion, $detalles = null, $ip = null) {
+function logAction($user_id, $accion, $detalles = null, $ip = null) {
     try {
         if (!$ip) {
             $ip = $_SERVER['REMOTE_ADDR'];
         }
         
         $db = getConnection();
-        $stmt = $db->prepare('INSERT INTO logs (empleado_id, accion, detalles, ip) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$empleado_id, $accion, $detalles, $ip]);
+        $stmt = $db->prepare('INSERT INTO logs (user_id, accion, detalles, ip) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$user_id, $accion, $detalles, $ip]);
         
     } catch (PDOException $e) {
         error_log('Error al registrar acción: ' . $e->getMessage());
@@ -100,5 +100,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-
-// Modificar index.php para mejorar el login y distinguir entre empresa y empleado

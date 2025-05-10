@@ -25,20 +25,22 @@ function handleLogin() {
     try {
         $db = getConnection();
         
-        // Buscar empleado por email
-        $stmt = $db->prepare('SELECT * FROM empleados WHERE email = ? AND activo = 1');
+        // Buscar usuario por email
+        $stmt = $db->prepare('SELECT u.*, r.nombre AS rol_nombre FROM users u 
+                             JOIN roles r ON u.rol_id = r.id 
+                             WHERE u.email = ? AND u.activo = 1');
         $stmt->execute([$data['email']]);
-        $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
+        $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // Si no existe o la contraseña no coincide
-        if (!$empleado) {
+        if (!$usuario) {
             http_response_code(401);
             echo json_encode(['error' => 'Email no encontrado']);
             exit;
         }
         
         // Verificar contraseña
-        if (!password_verify($data['password'], $empleado['password'])) {
+        if (!password_verify($data['password'], $usuario['password'])) {
             // Log para depuración
             error_log("Contraseña incorrecta para {$data['email']}");
             
@@ -48,21 +50,58 @@ function handleLogin() {
         }
         
         // Determinar si es una empresa o empleado
-        $esEmpresa = $empleado['rol_id'] == 5; // Asumiendo que rol_id 5 es 'empresa'
+        $esEmpresa = $usuario['rol_nombre'] === 'empresa'; 
+        $esEmpleador = $usuario['rol_nombre'] === 'empleador';
+        
+        // Obtener información adicional según tipo de usuario
+        if ($esEmpresa || $esEmpleador) {
+            $stmt = $db->prepare('SELECT * FROM empresas WHERE user_id = ?');
+            $stmt->execute([$usuario['id']]);
+            $entidad = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$entidad) {
+                error_log("Usuario empresa/empleador sin entidad asociada: {$usuario['id']}");
+            }
+        } else {
+            $stmt = $db->prepare('SELECT e.*, emp.nombre AS nombre_empresa 
+                                 FROM empleados e 
+                                 LEFT JOIN empresas emp ON e.empresa_id = emp.id 
+                                 WHERE e.user_id = ?');
+            $stmt->execute([$usuario['id']]);
+            $entidad = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$entidad) {
+                error_log("Usuario empleado sin entidad asociada: {$usuario['id']}");
+            }
+        }
+        
+        // Mapear datos para la respuesta
+        $nombreEntidad = null;
+        $entityId = null;
+        
+        if ($entidad) {
+            $nombreEntidad = $entidad['nombre'] ?? ($entidad['nombre'] . ' ' . $entidad['apellidos']);
+            $entityId = $entidad['id'];
+        }
         
         // Crear respuesta
         $respuesta = [
-            'token' => $empleado['id'], // Usar ID como token simple
+            'token' => $usuario['id'], // Usar ID como token simple
             'empleado' => [
-                'id' => $empleado['id'],
-                'nombre' => $empleado['nombre'],
-                'rol' => $esEmpresa ? 'empresa' : ($empleado['rol_id'] == 1 ? 'administrador' : 'empleado'),
-                'esEmpresa' => $esEmpresa
+                'id' => $entityId,
+                'userId' => $usuario['id'],
+                'nombre' => $nombreEntidad ?? 'Usuario',
+                'rol' => $usuario['rol_nombre'],
+                'esEmpresa' => $esEmpresa || $esEmpleador
             ]
         ];
         
         // Registrar acción
-        logAction($empleado['id'], 'login', 'Login exitoso');
+        logAction($usuario['id'], 'login', 'Login exitoso');
+        
+        // Actualizar último acceso
+        $stmt = $db->prepare('UPDATE users SET ultimo_acceso = NOW() WHERE id = ?');
+        $stmt->execute([$usuario['id']]);
         
         response($respuesta);
     } catch (PDOException $e) {

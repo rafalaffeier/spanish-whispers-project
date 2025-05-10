@@ -24,11 +24,11 @@ function handleRecuperarPassword() {
         $db = getConnection();
         
         // Verificar si existe el email
-        $stmt = $db->prepare('SELECT id, nombre FROM empleados WHERE email = ? AND activo = 1');
+        $stmt = $db->prepare('SELECT id FROM users WHERE email = ? AND activo = 1');
         $stmt->execute([$data['email']]);
-        $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
+        $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$empleado) {
+        if (!$usuario) {
             // Por seguridad, no indicamos si existe o no
             response(['message' => 'Si la dirección existe, recibirás un email con instrucciones']);
         }
@@ -38,13 +38,13 @@ function handleRecuperarPassword() {
         $expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
         
         // Guardar token en base de datos
-        $stmt = $db->prepare('INSERT INTO reset_tokens (empleado_id, token, expiry_date) 
+        $stmt = $db->prepare('INSERT INTO reset_tokens (user_id, token, expiry_date) 
                               VALUES (?, ?, ?)');
-        $stmt->execute([$empleado['id'], $token, $expiry]);
+        $stmt->execute([$usuario['id'], $token, $expiry]);
         
         // En un entorno real, aquí enviaríamos un email con el enlace para resetear
         // Por ahora solo registramos la acción
-        logAction($empleado['id'], 'solicitar_reset', 'Solicitud de restablecimiento de contraseña');
+        logAction($usuario['id'], 'solicitar_reset', 'Solicitud de restablecimiento de contraseña');
         
         response(['message' => 'Si la dirección existe, recibirás un email con instrucciones']);
     } catch (PDOException $e) {
@@ -77,7 +77,7 @@ function handleResetPassword() {
         $db = getConnection();
         
         // Verificar token
-        $stmt = $db->prepare('SELECT empleado_id FROM reset_tokens 
+        $stmt = $db->prepare('SELECT user_id FROM reset_tokens 
                               WHERE token = ? AND expiry_date > NOW() AND used = 0');
         $stmt->execute([$data['token']]);
         $token = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -90,14 +90,14 @@ function handleResetPassword() {
         
         // Actualizar contraseña
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-        $stmt = $db->prepare('UPDATE empleados SET password = ? WHERE id = ?');
-        $stmt->execute([$hashedPassword, $token['empleado_id']]);
+        $stmt = $db->prepare('UPDATE users SET password = ? WHERE id = ?');
+        $stmt->execute([$hashedPassword, $token['user_id']]);
         
         // Marcar token como usado
         $stmt = $db->prepare('UPDATE reset_tokens SET used = 1 WHERE token = ?');
         $stmt->execute([$data['token']]);
         
-        logAction($token['empleado_id'], 'reset_password', 'Restablecimiento de contraseña exitoso');
+        logAction($token['user_id'], 'reset_password', 'Restablecimiento de contraseña exitoso');
         
         response(['message' => 'Contraseña actualizada correctamente']);
     } catch (PDOException $e) {

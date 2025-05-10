@@ -24,20 +24,49 @@ CREATE TABLE IF NOT EXISTS departamentos (
     updated_at DATETIME DEFAULT NULL
 );
 
+-- Tabla de usuarios (unifica el acceso)
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(36) PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255),
+    rol_id INT,
+    activo BOOLEAN DEFAULT TRUE,
+    ultimo_acceso DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL,
+    FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL
+);
+
+-- Tabla de empresas
+CREATE TABLE IF NOT EXISTS empresas (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    nif VARCHAR(20) UNIQUE,
+    telefono VARCHAR(20),
+    direccion TEXT,
+    provincia VARCHAR(100),
+    codigo_postal VARCHAR(20),
+    pais VARCHAR(100) DEFAULT 'España',
+    email VARCHAR(100),
+    avatar VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Tabla de empleados
 CREATE TABLE IF NOT EXISTS empleados (
     id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    empresa_id VARCHAR(36) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE,
-    password VARCHAR(255),
     dni VARCHAR(20) UNIQUE,
-    rol_id INT,
     departamento_id INT,
-    empresa_id VARCHAR(36), -- Relación con la empresa empleadora
     cargo VARCHAR(100),
     division VARCHAR(100),
-    pais VARCHAR(100),
+    pais VARCHAR(100) DEFAULT 'España',
     ciudad VARCHAR(100),
     direccion TEXT,
     codigo_postal VARCHAR(20),
@@ -45,23 +74,22 @@ CREATE TABLE IF NOT EXISTS empleados (
     avatar VARCHAR(255),
     dispositivo_autorizado VARCHAR(255),
     ip_autorizada VARCHAR(45),
-    activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL,
-    FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL,
-    FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL,
-    FOREIGN KEY (empresa_id) REFERENCES empleados(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL
 );
 
 -- Tabla para tokens de restablecimiento de contraseña
 CREATE TABLE IF NOT EXISTS reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    empleado_id VARCHAR(36) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     token VARCHAR(255) NOT NULL,
     expiry_date DATETIME NOT NULL,
     used BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Tabla de jornadas
@@ -144,23 +172,23 @@ CREATE TABLE IF NOT EXISTS ausencias (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL,
     FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE,
-    FOREIGN KEY (aprobado_por) REFERENCES empleados(id) ON DELETE SET NULL
+    FOREIGN KEY (aprobado_por) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Tabla de logs y auditoría
 CREATE TABLE IF NOT EXISTS logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    empleado_id VARCHAR(36),
+    user_id VARCHAR(36),
     accion VARCHAR(100) NOT NULL,
     detalles TEXT,
     ip VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Inserta roles por defecto
+-- Inserta roles por defecto (cambiamos 'administrador' por 'empleador')
 INSERT INTO roles (nombre, descripcion) VALUES 
-('administrador', 'Acceso completo al sistema'),
+('empleador', 'Acceso a administración y seguimiento de empleados'),
 ('empleado', 'Acceso a registro de jornada propio'),
 ('supervisor', 'Acceso a registros de empleados bajo su supervisión'),
 ('rrhh', 'Acceso a reportes y gestión de personal'),

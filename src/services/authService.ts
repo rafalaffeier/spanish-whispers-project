@@ -21,6 +21,7 @@ export const login = async (email: string, password: string): Promise<{
     // Mapear respuesta a formato Employee
     const employee: Employee = {
       id: response.empleado.id,
+      userId: response.empleado.userId, // Añadido userId
       name: response.empleado.nombre,
       role: response.empleado.rol,
       isCompany: response.empleado.esEmpresa || false
@@ -59,7 +60,6 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = true;
-    apiData.rol_id = 5; // ID del rol 'empresa'
     apiData.type = 'company'; // Aseguramos que se envía el tipo correcto
     
     console.log("Datos de registro de EMPRESA:", JSON.stringify(apiData, null, 2));
@@ -68,14 +68,13 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.nombre = data.firstName;
     apiData.apellidos = data.lastName;
     apiData.dni = data.dni;
-    apiData.empresa_nif = data.companyNif;
+    apiData.companyNif = data.companyNif;
     apiData.provincia = data.province;
     apiData.direccion = data.companyAddress; 
     apiData.codigo_postal = data.zipCode;
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = false;
-    apiData.rol_id = 2; // ID del rol 'empleado'
     apiData.type = 'employee'; // Aseguramos que se envía el tipo correcto
     
     console.log("Datos de registro de EMPLEADO:", JSON.stringify(apiData, null, 2));
