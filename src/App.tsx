@@ -27,8 +27,8 @@ const queryClient = new QueryClient({
   }
 });
 
-// Definir base path para la aplicación
-const BASE_PATH = '';
+// Definir base path para la aplicación - debe coincidir con el configurado en .htaccess
+const BASE_PATH = '/apphora';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
