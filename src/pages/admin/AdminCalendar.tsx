@@ -136,10 +136,10 @@ const AdminCalendar = () => {
                 onMonthChange={setCurrentMonth}
                 className="rounded border"
                 components={{
-                  DayContent: ({ day }) => (
+                  DayContent: (props) => (
                     <div className="flex flex-col items-center">
-                      <span>{format(day, 'd')}</span>
-                      {getDayDecorations(day)}
+                      <span>{format(props.date, 'd')}</span>
+                      {getDayDecorations(props.date)}
                     </div>
                   )
                 }}
