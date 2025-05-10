@@ -39,11 +39,24 @@ export const clearAuth = clearAuthData;
 // Initialize auth - can be called at app startup
 export const initializeAuth = () => {
   console.log('[API Config] Initializing auth');
-  // Here we can check token validity or refresh it if needed
+  
+  // Verificar si hay un token válido
   const token = getAuthToken();
   if (token) {
     console.log('[API Config] Found existing auth token');
+    
+    // Verificar si hay un usuario asociado con el token
+    const employee = localStorage.getItem('currentEmployee');
+    if (!employee) {
+      console.log('[API Config] Token exists but no employee data, clearing auth');
+      clearAuth();
+    }
   } else {
+    // Si no hay token, asegurarse de que no haya datos de empleado
+    if (localStorage.getItem('currentEmployee')) {
+      console.log('[API Config] Employee data without token, clearing employee data');
+      localStorage.removeItem('currentEmployee');
+    }
     console.log('[API Config] No existing auth token found');
   }
 };

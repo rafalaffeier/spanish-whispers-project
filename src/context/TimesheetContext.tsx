@@ -28,6 +28,16 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const initializeData = async () => {
       try {
         setLoading(true);
+        
+        // Verificar si hay un token válido en localStorage
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          // Sin token, no hay empleado autenticado
+          setCurrentEmployee(null);
+          setLoading(false);
+          return;
+        }
+        
         // Intentar cargar el empleado actual desde localStorage
         const savedEmployee = localStorage.getItem('currentEmployee');
         if (savedEmployee) {
@@ -41,8 +51,15 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
           } catch (e) {
             console.error('Error parsing currentEmployee from localStorage:', e);
+            // Si hay un error al parsear, limpiar todo
             localStorage.removeItem('currentEmployee');
+            localStorage.removeItem('authToken');
+            setCurrentEmployee(null);
           }
+        } else {
+          // Si hay token pero no hay empleado, limpiar el token
+          localStorage.removeItem('authToken');
+          setCurrentEmployee(null);
         }
       } catch (error) {
         console.error('Error initializing data:', error);
@@ -51,6 +68,10 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           description: "No se pudieron cargar los datos. Por favor, inténtalo de nuevo.",
           variant: "destructive"
         });
+        // En caso de error, mejor limpiar el estado de autenticación
+        localStorage.removeItem('currentEmployee');
+        localStorage.removeItem('authToken');
+        setCurrentEmployee(null);
       } finally {
         setLoading(false);
       }
@@ -61,14 +82,24 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     api.initializeAuth();
   }, []);
 
-  // Guardar el empleado actual en localStorage cuando cambie
-  useEffect(() => {
-    if (currentEmployee) {
-      localStorage.setItem('currentEmployee', JSON.stringify(currentEmployee));
+  // Función para actualizar el empleado actual
+  const updateCurrentEmployee = (employee: Employee | null) => {
+    if (employee) {
+      localStorage.setItem('currentEmployee', JSON.stringify(employee));
+      setCurrentEmployee(employee);
       // Cuando cambia el empleado, cargar sus datos
-      loadEmployeeData(currentEmployee.id);
+      if (employee.id) {
+        loadEmployeeData(employee.id);
+      }
+    } else {
+      // Si se está cerrando sesión, limpiar todo
+      localStorage.removeItem('currentEmployee');
+      localStorage.removeItem('authToken');
+      setCurrentEmployee(null);
+      setTimesheets([]);
+      setEmployees([]);
     }
-  }, [currentEmployee?.id]);
+  };
 
   // Función para cargar datos del empleado
   const loadEmployeeData = async (employeeId: string) => {
@@ -144,7 +175,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     employees,
     timesheets,
     currentEmployee,
-    setCurrentEmployee,
+    setCurrentEmployee: updateCurrentEmployee,
     updateTimesheet,
     getCurrentTimesheet,
     loading,

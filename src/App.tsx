@@ -28,7 +28,7 @@ const queryClient = new QueryClient({
 });
 
 // Definir base path para la aplicación
-const BASE_PATH = '/apphora';
+const BASE_PATH = '';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,7 +39,7 @@ const App = () => (
           <Sonner position="top-right" closeButton={true} />
           <BrowserRouter basename={BASE_PATH}>
             <Routes>
-              {/* Redirección explícita de la ruta raíz al login */}
+              {/* Ruta raíz redirecciona a login */}
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} /> 
