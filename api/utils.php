@@ -13,12 +13,7 @@ function generateUUID() {
     );
 }
 
-// Función para enviar respuestas JSON
-function response($data, $statusCode = 200) {
-    http_response_code($statusCode);
-    header('Content-Type: application/json');
-    echo json_encode($data);
-    exit;
-}
+// Nota: La función response() ha sido eliminada porque ya está definida en config.php
 
 // Otras funciones de utilidad que puedan necesitarse
+
