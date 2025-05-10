@@ -181,29 +181,111 @@ function handleRegistro() {
                 $stmt = $db->prepare('SELECT id FROM empleados WHERE dni = ? AND rol_id IN (SELECT id FROM roles WHERE nombre IN ("empresa", "administrador")) LIMIT 1');
                 $stmt->execute([$data['companyNif']]);
                 $empresa = $stmt->fetch(PDO::FETCH_ASSOC);
-                $empresaId = $empresa ? $empresa['id'] : null;
+                if ($empresa) {
+                    $empresaId = $empresa['id'];
+                }
             }
             
-            // Insertar empleado
-            $stmt = $db->prepare('INSERT INTO empleados (id, nombre, apellidos, email, password, dni, rol_id, empresa_id, cargo, pais, ciudad, direccion, codigo_postal, telefono, activo) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            // Comprobar si tenemos todos los campos necesarios
+            $nombre = $data['firstName'] ?? 'Usuario';
+            $apellidos = $data['lastName'] ?? '';
+            $email = $data['email'];
+            $password = password_hash($data['password'], PASSWORD_DEFAULT);
+            $dni = $data['dni'] ?? null;
+            $pais = $data['country'] ?? 'España';
+            $ciudad = $data['province'] ?? null;
+            $telefono = $data['phone'] ?? null;
+            $codigoPostal = $data['zipCode'] ?? null;
             
-            $stmt->execute([
-                $id,
-                $data['firstName'] ?? 'Usuario',
-                $data['lastName'] ?? '',
-                $data['email'],
-                password_hash($data['password'], PASSWORD_DEFAULT),
-                $data['dni'] ?? null,
-                $rolId,
-                $empresaId,
-                'Empleado',
-                $data['country'] ?? 'España',
-                $data['province'] ?? null,
-                '',
-                $data['zipCode'] ?? null,
-                $data['phone'] ?? null
-            ]);
+            // Depuración - Mostrar qué datos estamos intentando insertar
+            error_log("Intentando insertar empleado con datos: " . print_r([
+                'id' => $id,
+                'nombre' => $nombre,
+                'apellidos' => $apellidos,
+                'email' => $email,
+                'rol_id' => $rolId,
+                'empresa_id' => $empresaId,
+                'pais' => $pais,
+                'ciudad' => $ciudad,
+                'telefono' => $telefono
+            ], true));
+            
+            // Construir la consulta SQL de forma dinámica para evitar problemas de columnas
+            $fields = [];
+            $placeholders = [];
+            $values = [];
+            
+            // Campos obligatorios
+            $fields[] = 'id';
+            $placeholders[] = '?';
+            $values[] = $id;
+            
+            $fields[] = 'nombre';
+            $placeholders[] = '?';
+            $values[] = $nombre;
+            
+            $fields[] = 'apellidos';
+            $placeholders[] = '?';
+            $values[] = $apellidos;
+            
+            $fields[] = 'email';
+            $placeholders[] = '?';
+            $values[] = $email;
+            
+            $fields[] = 'password';
+            $placeholders[] = '?';
+            $values[] = $password;
+            
+            $fields[] = 'rol_id';
+            $placeholders[] = '?';
+            $values[] = $rolId;
+            
+            $fields[] = 'activo';
+            $placeholders[] = '1';
+            
+            // Campos opcionales
+            if ($dni !== null) {
+                $fields[] = 'dni';
+                $placeholders[] = '?';
+                $values[] = $dni;
+            }
+            
+            if ($empresaId !== null) {
+                $fields[] = 'empresa_id';
+                $placeholders[] = '?';
+                $values[] = $empresaId;
+            }
+            
+            if ($pais !== null) {
+                $fields[] = 'pais';
+                $placeholders[] = '?';
+                $values[] = $pais;
+            }
+            
+            if ($ciudad !== null) {
+                $fields[] = 'ciudad';
+                $placeholders[] = '?';
+                $values[] = $ciudad;
+            }
+            
+            if ($codigoPostal !== null) {
+                $fields[] = 'codigo_postal';
+                $placeholders[] = '?';
+                $values[] = $codigoPostal;
+            }
+            
+            if ($telefono !== null) {
+                $fields[] = 'telefono';
+                $placeholders[] = '?';
+                $values[] = $telefono;
+            }
+            
+            // Construir y ejecutar la consulta
+            $sql = 'INSERT INTO empleados (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            error_log("SQL generado: " . $sql);
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute($values);
         }
         
         logAction($id, 'registro', 'Nuevo usuario registrado');
@@ -213,6 +295,7 @@ function handleRegistro() {
             'message' => 'Registro completado correctamente'
         ]);
     } catch (PDOException $e) {
+        error_log('Error al registrar: ' . $e->getMessage() . ' - SQL State: ' . $e->getCode());
         response(['error' => 'Error al registrar: ' . $e->getMessage()], 500);
     }
 }
