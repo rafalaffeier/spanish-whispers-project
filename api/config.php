@@ -2,6 +2,10 @@
 <?php
 // Configuración global de la API
 
+// Activar reporte de errores para desarrollo
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // Configuración de la base de datos
 function getConnection() {
     $host = 'localhost';
@@ -15,8 +19,16 @@ function getConnection() {
         $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         return $db;
     } catch (PDOException $e) {
+        // Capturar error de conexión y devolver mensaje detallado
+        $errorInfo = json_encode([
+            'error' => 'Error de conexión a la base de datos: ' . $e->getMessage(),
+            'code' => $e->getCode(),
+            'help' => 'Verifique las credenciales de la base de datos y asegúrese de que el servidor MySQL esté en funcionamiento.'
+        ]);
+        
         http_response_code(500);
-        echo json_encode(['error' => 'Error de conexión a la base de datos: ' . $e->getMessage()]);
+        header('Content-Type: application/json');
+        echo $errorInfo;
         exit;
     }
 }
@@ -77,10 +89,11 @@ function response($data, $code = 200) {
     exit;
 }
 
-// Configuración de CORS - Para permitir peticiones desde el frontend
+// Configuración de CORS - Para permitir peticiones desde cualquier origen
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Max-Age: 86400'); // Cache por 24 horas
 
 // Manejar petición OPTIONS (pre-flight de CORS)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

@@ -1,4 +1,3 @@
-
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
 import { Employee, TimesheetEntry, PauseRecord, RegistrationData, PasswordResetRequest, PasswordResetConfirm } from '@/types/timesheet';
@@ -38,7 +37,7 @@ export const clearAuth = () => {
   localStorage.removeItem('currentEmployee');
 };
 
-// Función base para peticiones HTTP
+// Función base para peticiones HTTP con mejor manejo de errores
 const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
@@ -61,6 +60,13 @@ const fetchWithAuth = async (
       headers,
     });
 
+    // Para respuestas que no son JSON (como errores de servidor)
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") === -1) {
+      const textError = await response.text();
+      throw new Error(`Error en formato no-JSON: ${textError}`);
+    }
+
     // Verificar si la respuesta es exitosa
     if (!response.ok) {
       // Si es 401 Unauthorized, limpiar autenticación
@@ -69,6 +75,7 @@ const fetchWithAuth = async (
       }
 
       const errorData = await response.json().catch(() => ({}));
+      console.error("API error response:", errorData);
       throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
     }
 
@@ -79,11 +86,22 @@ const fetchWithAuth = async (
 
     return await response.json();
   } catch (error) {
-    console.error("API error:", error);
+    console.error("API request failed:", error);
+    
+    // Manejar errores de conexión específicamente
     const message = error instanceof Error ? error.message : String(error);
+    
+    // Mostrar mensajes más amigables para errores comunes
+    let userMessage = message;
+    if (message.includes('Failed to fetch') || message.includes('Network Error')) {
+      userMessage = 'No se pudo conectar al servidor. Verifique su conexión a Internet o contacte al administrador.';
+    } else if (message.includes('Access denied')) {
+      userMessage = 'Error de acceso a la base de datos. Por favor, contacte al administrador del sistema.';
+    }
+    
     toast({
       title: "Error de API",
-      description: message,
+      description: userMessage,
       variant: "destructive",
     });
     throw error;
