@@ -105,7 +105,14 @@ function handleRegistro() {
         }
         
         // Determinar si es registro de empresa o empleado
-        $esEmpresa = isset($data['es_empresa']) && $data['es_empresa'] === true;
+        // Si es_empresa está definido, lo usamos; si no, verificamos type
+        if (isset($data['es_empresa'])) {
+            $esEmpresa = $data['es_empresa'] === true;
+        } else if (isset($data['type'])) {
+            $esEmpresa = $data['type'] === 'company';
+        } else {
+            $esEmpresa = false;
+        }
         
         // Debug para empresa
         if ($esEmpresa) {
