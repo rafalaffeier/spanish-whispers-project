@@ -50,14 +50,16 @@ export const register = async (data: RegistrationData): Promise<void> => {
 
   if (data.type === 'company') {
     // Datos específicos para una empresa
-    apiData.nombre = data.companyName; // Cambio de companyName a nombre para API
-    apiData.nif = data.companyNif; // Cambio de companyNif a nif para API
+    apiData.nombre = data.companyName; // Aseguramos que se use el nombre correcto
+    apiData.apellidos = ""; // Añadir apellidos vacíos para empresas
+    apiData.nif = data.companyNif; 
     apiData.provincia = data.province;
     apiData.direccion = data.companyAddress;
     apiData.codigo_postal = data.zipCode;
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = true; // Indicador explícito de que es empresa
+    apiData.rol_id = 5; // ID del rol 'empresa' según el esquema
   } else {
     // Datos específicos para un empleado
     apiData.nombre = data.firstName;
@@ -70,14 +72,20 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = false; // Indicador explícito de que es empleado
+    apiData.rol_id = 2; // ID del rol 'empleado' según el esquema
   }
+
+  console.log("Datos formateados para API:", apiData);
 
   try {
     // Importante: NO añadir token para registro
-    await fetchWithAuth('/registro', {
+    const response = await fetchWithAuth('/registro', {
       method: 'POST',
       body: JSON.stringify(apiData),
     });
+    
+    console.log("Respuesta del registro:", response);
+    return response;
   } catch (error) {
     console.error("Error durante el registro:", error);
     throw error;

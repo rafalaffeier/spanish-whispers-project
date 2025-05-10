@@ -32,6 +32,7 @@ export const fetchWithAuth = async (
 
     // Para depuración
     console.log(`Response status for ${url}:`, response.status);
+    console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
 
     // Para respuestas que no son JSON (como errores de servidor)
     const contentType = response.headers.get("content-type");
@@ -74,7 +75,9 @@ export const fetchWithAuth = async (
       return null;
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log("API response data:", responseData);
+    return responseData;
   } catch (error) {
     console.error("API request failed:", error);
     
