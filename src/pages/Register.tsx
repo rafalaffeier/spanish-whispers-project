@@ -117,49 +117,76 @@ const Register = () => {
     
     try {
       console.log("Enviando datos de registro:", values);
+      console.log("Tipo de registro:", values.type);
       
-      // Verificaciones adicionales para campos requeridos según el tipo
-      if (values.type === 'company') {
-        if (!values.companyName || !values.companyNif) {
-          throw new Error('El nombre y NIF/CIF de la empresa son obligatorios');
-        }
+      // Verificaciones adicionales según el tipo
+      if (values.type === 'company' && (!values.companyName || !values.companyNif || !values.companyAddress)) {
+        const missingFields = [];
+        if (!values.companyName) missingFields.push("Nombre de empresa");
+        if (!values.companyNif) missingFields.push("NIF/CIF de empresa");
+        if (!values.companyAddress) missingFields.push("Dirección de empresa");
         
-        if (!values.companyAddress) {
-          throw new Error('La dirección de la empresa es obligatoria');
-        }
-      } else if (values.type === 'employee') {
-        if (!values.firstName || !values.lastName || !values.dni) {
-          throw new Error('Nombre, apellidos y DNI/NIE del empleado son obligatorios');
-        }
-        
-        if (!values.companyNif) {
-          throw new Error('El NIF/CIF de la empresa donde trabajas es obligatorio');
-        }
-      }
-
-      if (!values.email || !values.password || !values.confirmPassword) {
-        throw new Error('Email y contraseña son obligatorios');
-      }
-
-      if (values.password !== values.confirmPassword) {
-        throw new Error('Las contraseñas no coinciden');
+        const errorMsg = `Campos requeridos para empresa: ${missingFields.join(", ")}`;
+        console.error(errorMsg);
+        toast.error(errorMsg);
+        setApiError(errorMsg);
+        setIsSubmitting(false);
+        return;
       }
       
-      // Enviar datos al backend con un timeout para evitar bloqueos indefinidos
+      if (values.type === 'employee' && (!values.firstName || !values.lastName || !values.dni || !values.companyNif)) {
+        const missingFields = [];
+        if (!values.firstName) missingFields.push("Nombre");
+        if (!values.lastName) missingFields.push("Apellidos");
+        if (!values.dni) missingFields.push("DNI/NIE");
+        if (!values.companyNif) missingFields.push("NIF/CIF de empresa");
+        
+        const errorMsg = `Campos requeridos para empleado: ${missingFields.join(", ")}`;
+        console.error(errorMsg);
+        toast.error(errorMsg);
+        setApiError(errorMsg);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Enviar datos al backend
       toast.info('Enviando datos de registro...');
       
-      // Activar modo debug para registro de empresa
+      // Preparar datos para el registro
+      const registrationData: RegistrationData = {
+        type: values.type,
+        email: values.email,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        phone: values.phone,
+        country: values.country,
+        province: values.province,
+        zipCode: values.zipCode
+      };
+      
+      // Añadir campos según el tipo de registro
       if (values.type === 'company') {
-        console.log("REGISTRO DE EMPRESA:", JSON.stringify(values, null, 2));
+        registrationData.companyName = values.companyName;
+        registrationData.companyNif = values.companyNif;
+        registrationData.companyAddress = values.companyAddress;
+      } else {
+        registrationData.firstName = values.firstName;
+        registrationData.lastName = values.lastName;
+        registrationData.dni = values.dni;
+        registrationData.companyNif = values.companyNif;
+        registrationData.address = values.companyAddress; // Usar la misma dirección para empleado
       }
       
+      console.log("Datos para registro:", JSON.stringify(registrationData, null, 2));
+      
       try {
-        await registerUser(values as RegistrationData);
-        toast.success('Registro completado! Redirigiendo al login...');
+        const response = await registerUser(registrationData);
+        console.log("Respuesta del servidor:", response);
+        toast.success('Registro completado exitosamente! Redirigiendo al login...');
         
-        // Redireccionar al login después de un breve retraso para que el usuario vea el toast
+        // Redireccionar al login después de un breve retraso
         setTimeout(() => navigate('/login'), 2000);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error durante el registro:', error);
         
         const errorMessage = error instanceof Error 
@@ -169,7 +196,7 @@ const Register = () => {
         setApiError(errorMessage);
         toast.error(`Error al registrarse: ${errorMessage}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error durante la validación:', error);
       
       const errorMessage = error instanceof Error 
@@ -185,7 +212,18 @@ const Register = () => {
 
   const toggleUserType = (checked: boolean) => {
     setIsEmployee(!checked);
-    form.setValue('type', !checked ? 'employee' : 'company');
+    const newType = !checked ? 'employee' : 'company';
+    console.log(`Cambiando tipo de usuario a: ${newType}`);
+    form.setValue('type', newType);
+    
+    // Resetear campos no relevantes según el tipo
+    if (newType === 'company') {
+      form.setValue('firstName', '');
+      form.setValue('lastName', '');
+      form.setValue('dni', '');
+    } else {
+      // No resetear el NIF de empresa para empleados, ya que lo necesitan para asociarse
+    }
   };
 
   return (

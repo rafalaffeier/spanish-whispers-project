@@ -6,205 +6,56 @@ import { isValidDate, toSafeDate } from '@/utils/dateUtils';
 
 // Función base para peticiones HTTP con mejor manejo de errores
 export const fetchWithAuth = async (
-  url: string,
+  endpoint: string, 
   options: RequestInit = {}
 ): Promise<any> => {
   try {
-    const headers = {
+    console.log(`Fetching ${API_BASE_URL}${endpoint}`);
+    
+    const token = getAuthToken();
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options.headers
     };
 
-    // Añadir token de autenticación si existe Y la URL no es para login o registro
-    const authToken = getAuthToken();
-    if (authToken && !url.includes('/login') && !url.includes('/registro') 
-        && !url.includes('/recuperar-password') && !url.includes('/reset-password')) {
-      headers['Authorization'] = `Bearer ${authToken}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    console.log(`Making API request to: ${API_BASE_URL}${url}`);
-    console.log('Request headers:', headers);
-    
-    // Registro más detallado del cuerpo para fines de depuración
-    if (options.body) {
-      try {
-        const bodyObj = JSON.parse(options.body.toString());
-        console.log('Request body:', bodyObj);
-      } catch (e) {
-        console.log('Request body:', options.body);
-      }
-    }
-    
-    const response = await fetch(`${API_BASE_URL}${url}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      headers,
+      headers
     });
 
-    // Para depuración
-    console.log(`Response status for ${url}:`, response.status);
-    console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
-
-    // Verificar si el servidor devolvió un error HTTP (status >= 400)
-    if (!response.ok) {
-      let errorMessage = `Error ${response.status}: ${response.statusText}`;
-      
-      // Intentar leer el mensaje de error del cuerpo de la respuesta
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        try {
-          const errorData = await response.json();
-          console.error("API error response (JSON):", errorData);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          console.error("Error parsing JSON error:", e);
-        }
-      } else {
-        // Para errores no-JSON
-        try {
-          const textError = await response.text();
-          console.error("API error response (text):", textError);
-          if (textError && textError.length > 0) {
-            errorMessage = textError;
-          }
-        } catch (e) {
-          console.error("Error reading error response text:", e);
-        }
-      }
-      
-      // Si es 401 Unauthorized, limpiar autenticación solo si no estamos en login o registro
-      if (response.status === 401 && !url.includes('/login') && !url.includes('/registro')) {
-        // Importación dinámica para evitar dependencia circular
-        const { clearAuth } = await import('./apiConfig');
-        clearAuth();
-      }
-      
-      // Formateamos mejor el mensaje de error para errores SQL
-      if (errorMessage.includes('SQLSTATE')) {
-        // Si es un error SQL, extraer solo el mensaje relevante
-        if (errorMessage.includes('Unknown column')) {
-          errorMessage = "Error de base de datos: Columna no encontrada. Por favor, contacta al administrador.";
-        } else if (errorMessage.includes('Access denied')) {
-          errorMessage = "Error de acceso a la base de datos. Por favor, contacta al administrador.";
-        } else {
-          errorMessage = "Error de base de datos. Por favor, contacta al administrador.";
-        }
-      }
-      
-      throw new Error(errorMessage);
-    }
-
-    // Para respuestas vacías (como en DELETE)
-    if (response.status === 204) {
-      return null;
-    }
-
-    // Verificar si hay contenido antes de intentar parsear JSON
-    const contentLength = response.headers.get('content-length');
-    if (contentLength === '0') {
-      return {};
-    }
-
-    // Manejar respuesta HTML (frecuentemente un error de servidor)
+    // Verificar si la respuesta es un archivo
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('text/html')) {
-      console.log("Recibido HTML en vez de JSON:", contentType);
-      
-      try {
-        const htmlContent = await response.text();
-        // Intentar buscar un mensaje JSON dentro del HTML (caso común en errores de servidor)
-        const jsonMatch = htmlContent.match(/{[\s\S]*}/);
-        if (jsonMatch) {
-          try {
-            return JSON.parse(jsonMatch[0]);
-          } catch (e) {
-            console.error("No se pudo extraer JSON del HTML:", e);
-          }
-        }
-        console.log("Contenido HTML recibido (primeros 200 caracteres):", htmlContent.substring(0, 200));
-      } catch (e) {
-        console.error("Error al leer contenido HTML:", e);
-      }
-      
-      // Devolver un array vacío o un objeto según el contexto
-      return url.includes('jornadas') ? [] : {};
+    if (contentType && contentType.includes('application/octet-stream')) {
+      return response.blob();
     }
 
+    // Para otros tipos, intentar parsear como JSON
+    let data;
     try {
-      const responseData = await response.json();
-      console.log("API response data:", responseData);
-      return responseData;
-    } catch (jsonError) {
-      console.error("Error al parsear JSON:", jsonError);
-      
-      try {
-        const textResponse = await response.text();
-        console.log("Respuesta texto (no-JSON):", textResponse);
-      } catch (e) {}
-      
-      // En caso de error de parseo, devolver un resultado vacío según contexto
-      return url.includes('jornadas') ? [] : {};
+      data = await response.json();
+    } catch (e) {
+      console.error('Error al parsear respuesta JSON:', e);
+      throw new Error('Error al procesar la respuesta del servidor');
     }
-  } catch (error) {
-    console.error("API request failed:", error);
-    
-    // Manejar errores de conexión específicamente
-    const message = error instanceof Error ? error.message : String(error);
-    
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      console.error("La solicitud fue abortada por tiempo de espera");
-      toast.error("La solicitud tomó demasiado tiempo. Por favor intente nuevamente.");
-      throw new Error("Tiempo de espera agotado. Por favor intente nuevamente.");
+
+    // Si hay un error del lado del servidor
+    if (!response.ok) {
+      console.error('Error de API:', data);
+      throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('Solicitud cancelada por timeout');
+      throw new Error('La solicitud ha tardado demasiado tiempo');
     }
     
-    // Mostrar mensajes más amigables para errores comunes
-    let userMessage = message;
-    if (message.includes('Failed to fetch') || message.includes('Network Error')) {
-      userMessage = 'No se pudo conectar al servidor. Verifique su conexión a Internet o contacte al administrador.';
-    }
-    
-    toast.error(`Error: ${userMessage}`);
+    console.error('Error en fetchWithAuth:', error);
     throw error;
   }
-};
-
-// Función para convertir valores que pueden ser string o Date a Date
-export const ensureDate = (value: string | Date | null): Date | null => {
-  if (!value) return null;
-  if (value instanceof Date) return value;
-  return new Date(value);
-};
-
-// Funciones para formateo de datos
-export const formatDateForApi = (date: Date | string | null): string => {
-  // Si es null, devolver cadena vacía
-  if (date === null) return '';
-  
-  // Si ya es un string, devolverlo directamente
-  if (typeof date === 'string') {
-    return date;
-  }
-  
-  // Si es una fecha, convertirla a ISO string
-  return date.toISOString();
-};
-
-// Mapeos de estados
-export const mapStatusToApi = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'not_started': 'no_iniciada',
-    'active': 'activa',
-    'paused': 'pausada',
-    'finished': 'finalizada'
-  };
-  return statusMap[status] || status;
-};
-
-export const mapStatusFromApi = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'no_iniciada': 'not_started',
-    'activa': 'active',
-    'pausada': 'paused',
-    'finalizada': 'finished'
-  };
-  return statusMap[status] || status;
 };

@@ -111,7 +111,7 @@ export const register = async (data: RegistrationData): Promise<any> => {
     }
     
     return response;
-  } catch (error) {
+  } catch (error: any) {
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Error desconocido durante el registro';
