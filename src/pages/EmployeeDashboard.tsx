@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import TimesheetControl from '@/components/TimesheetControl';
 import { Settings } from 'lucide-react';
@@ -11,9 +11,21 @@ import ProfileEditDialog from '@/components/profile/ProfileEditDialog';
 import { Button } from '@/components/ui/button';
 
 const EmployeeDashboard = () => {
+  const navigate = useNavigate();
   const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet } = useTimesheet();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    if (!currentEmployee) {
+      console.log("No hay empleado activo, redirigiendo a login");
+      navigate("/login");
+    } else {
+      console.log("Empleado activo:", currentEmployee.name);
+    }
+  }, [currentEmployee, navigate]);
 
+  // Si no hay empleado activo, no renderizar nada mientras se redirecciona
   if (!currentEmployee) {
     return <Navigate to="/login" />;
   }
@@ -29,7 +41,8 @@ const EmployeeDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header con botón de configuración */}
-      <div className="p-4 flex justify-end">
+      <div className="p-4 flex justify-between">
+        <h2 className="text-lg font-medium">Control de Jornada</h2>
         <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
           <Settings className="h-6 w-6 text-gray-500" />
         </Button>

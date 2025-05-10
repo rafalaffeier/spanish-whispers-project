@@ -39,7 +39,8 @@ const App = () => (
           <Sonner position="top-right" closeButton={true} />
           <BrowserRouter basename={BASE_PATH}>
             <Routes>
-              <Route path="/" element={<Login />} />
+              {/* Redirección explícita de la ruta raíz al login */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} /> 
               <Route path="/password-reset" element={<PasswordReset />} />
