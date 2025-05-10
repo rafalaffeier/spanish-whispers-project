@@ -80,9 +80,6 @@ const Register = () => {
         } else if (companyNif === "A87654321") {
           setCompanyNameFromNif("Empresa Ejemplo S.A.");
           form.setValue('companyName', "Empresa Ejemplo S.A.");
-        } else if (companyNif === "y8619064nn") {
-          setCompanyNameFromNif("Empresa de Prueba");
-          form.setValue('companyName', "Empresa de Prueba");
         } else {
           setCompanyNameFromNif("");
           form.setValue('companyName', "");
@@ -170,6 +167,7 @@ const Register = () => {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel>Nombre del empleado</FormLabel>
                         <FormControl>
                           <div className="flex overflow-hidden rounded-md border">
                             <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -188,6 +186,7 @@ const Register = () => {
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel>Apellidos del empleado</FormLabel>
                         <FormControl>
                           <Input placeholder="Apellidos" {...field} />
                         </FormControl>
@@ -201,6 +200,7 @@ const Register = () => {
                     name="dni"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel>NIF/CIF/ID del empleado</FormLabel>
                         <FormControl>
                           <Input placeholder="NIF / CIF / ID del empleado" {...field} />
                         </FormControl>
