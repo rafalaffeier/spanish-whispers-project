@@ -1,370 +1,268 @@
 
 <?php
-// Funciones de autenticación
+// Funciones de autenticación y registro
 
+// Función para manejar el login
 function handleLogin() {
+    // Verificar método
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        response(['error' => 'Método no permitido'], 405);
+        http_response_code(405);
+        echo json_encode(['error' => 'Método no permitido']);
+        exit;
+    }
+    
+    // Obtener datos del cuerpo de la petición
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['email']) || !isset($data['password'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Faltan credenciales']);
+        exit;
     }
     
     try {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!isset($data['email']) || !isset($data['password'])) {
-            response(['error' => 'Datos incompletos'], 400);
-        }
-        
         $db = getConnection();
         
-        // Modificada la consulta para evitar el error de department_id
-        $stmt = $db->prepare('SELECT id, nombre, password, rol_id FROM empleados WHERE email = ? AND activo = 1');
+        // Buscar empleado por email
+        $stmt = $db->prepare('SELECT * FROM empleados WHERE email = ? AND activo = 1');
         $stmt->execute([$data['email']]);
         $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$empleado || !password_verify($data['password'], $empleado['password'])) {
-            response(['error' => 'Credenciales inválidas'], 401);
+        // Si no existe o la contraseña no coincide
+        if (!$empleado) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Email no encontrado']);
+            exit;
         }
         
-        // Obtener información del rol
-        $stmt = $db->prepare('SELECT nombre FROM roles WHERE id = ?');
-        $stmt->execute([$empleado['rol_id']]);
-        $rol = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Determinar si es empresa o empleado
-        $esEmpresa = false;
-        if ($rol && ($rol['nombre'] === 'administrador' || $rol['nombre'] === 'empresa')) {
-            $esEmpresa = true;
+        // Verificar contraseña
+        if (!password_verify($data['password'], $empleado['password'])) {
+            // Log para depuración
+            error_log("Contraseña incorrecta para {$data['email']}");
+            
+            http_response_code(401);
+            echo json_encode(['error' => 'Contraseña incorrecta']);
+            exit;
         }
         
-        // En un sistema real, generaríamos un JWT
-        // Por simplicidad, usamos el ID como "token"
-        $token = $empleado['id'];
+        // Determinar si es una empresa o empleado
+        $esEmpresa = $empleado['rol_id'] == 5; // Asumiendo que rol_id 5 es 'empresa'
         
-        // Registrar el acceso
-        logAction($empleado['id'], 'login', 'Acceso al sistema');
-        
-        unset($empleado['password']); // No devolver la contraseña
-        
-        response([
-            'token' => $token,
+        // Crear respuesta
+        $respuesta = [
+            'token' => $empleado['id'], // Usar ID como token simple
             'empleado' => [
                 'id' => $empleado['id'],
                 'nombre' => $empleado['nombre'],
-                'rol' => $rol ? $rol['nombre'] : 'empleado',
+                'rol' => $esEmpresa ? 'empresa' : ($empleado['rol_id'] == 1 ? 'administrador' : 'empleado'),
                 'esEmpresa' => $esEmpresa
             ]
-        ]);
+        ];
+        
+        // Registrar acción
+        logAction($empleado['id'], 'login', 'Login exitoso');
+        
+        response($respuesta);
     } catch (PDOException $e) {
-        error_log('Error en login: ' . $e->getMessage());
-        response(['error' => 'Error al iniciar sesión: ' . $e->getMessage()], 500);
+        error_log("Error en login: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Error de conexión. Por favor contacte al administrador.']);
+        exit;
     }
 }
 
+// Función para manejar el registro
 function handleRegistro() {
+    // Debug para ver los datos entrantes
+    error_log("Inicio de registro: " . file_get_contents('php://input'));
+    
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        response(['error' => 'Método no permitido'], 405);
+        http_response_code(405);
+        echo json_encode(['error' => 'Método no permitido']);
+        exit;
+    }
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    // Validar campos mínimos
+    if (!isset($data['email']) || !isset($data['password'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Faltan datos obligatorios']);
+        exit;
     }
     
     try {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        // Validar datos mínimos
-        if (!isset($data['email']) || !isset($data['password']) || !isset($data['type'])) {
-            response(['error' => 'Datos incompletos'], 400);
-        }
-        
         $db = getConnection();
         
-        // Verificar si el correo ya está registrado
+        // Verificar si el email ya existe
         $stmt = $db->prepare('SELECT id FROM empleados WHERE email = ?');
         $stmt->execute([$data['email']]);
-        if ($stmt->rowCount() > 0) {
-            response(['error' => 'El correo electrónico ya está registrado'], 400);
+        
+        if ($stmt->fetch()) {
+            http_response_code(409);
+            echo json_encode(['error' => 'El email ya está registrado']);
+            exit;
         }
         
-        // Generar UUID para el nuevo usuario
+        // Determinar si es registro de empresa o empleado
+        $esEmpresa = isset($data['es_empresa']) && $data['es_empresa'] === true;
+        
+        // Debug para empresa
+        if ($esEmpresa) {
+            error_log("Registrando EMPRESA: " . json_encode($data));
+        } else {
+            error_log("Registrando EMPLEADO: " . json_encode($data));
+        }
+        
+        // Generar ID único
         $id = generateUUID();
         
-        // Determinar el rol según el tipo de registro
-        if ($data['type'] === 'company') {
-            // Buscar rol de empresa
-            $stmt = $db->prepare('SELECT id FROM roles WHERE nombre = "empresa" OR nombre = "administrador" LIMIT 1');
-            $stmt->execute();
-            $rol = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rolId = $rol ? $rol['id'] : 1; // Por defecto rol admin si no existe rol empresa
-            
-            // Insertar empresa
-            $stmt = $db->prepare('INSERT INTO empleados (id, nombre, apellidos, email, password, dni, rol_id, cargo, pais, ciudad, direccion, codigo_postal, telefono, activo) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
-            
-            $stmt->execute([
-                $id, 
-                $data['companyName'] ?? 'Empresa',
-                '',
-                $data['email'],
-                password_hash($data['password'], PASSWORD_DEFAULT),
-                $data['companyNif'] ?? null,
-                $rolId,
-                'Director',
-                $data['country'] ?? 'España',
-                $data['province'] ?? null,
-                $data['companyAddress'] ?? null,
-                $data['zipCode'] ?? null,
-                $data['phone'] ?? null
-            ]);
-        } else {
-            // Es un empleado
-            // Buscar rol de empleado
-            $stmt = $db->prepare('SELECT id FROM roles WHERE nombre = "empleado" LIMIT 1');
-            $stmt->execute();
-            $rol = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rolId = $rol ? $rol['id'] : 2; // Por defecto rol empleado
-            
-            // Buscar empresa por NIF/CIF
-            $empresaId = null;
-            if (isset($data['companyNif']) && !empty($data['companyNif'])) {
-                $stmt = $db->prepare('SELECT id FROM empleados WHERE dni = ? AND rol_id IN (SELECT id FROM roles WHERE nombre IN ("empresa", "administrador")) LIMIT 1');
-                $stmt->execute([$data['companyNif']]);
-                $empresa = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($empresa) {
-                    $empresaId = $empresa['id'];
-                }
-            }
-            
-            // Comprobar si tenemos todos los campos necesarios
-            $nombre = $data['firstName'] ?? 'Usuario';
-            $apellidos = $data['lastName'] ?? '';
-            $email = $data['email'];
-            $password = password_hash($data['password'], PASSWORD_DEFAULT);
-            $dni = $data['dni'] ?? null;
-            $pais = $data['country'] ?? 'España';
-            $ciudad = $data['province'] ?? null;
-            $direccion = $data['companyAddress'] ?? null; // Guardamos la dirección del empleado (aunque el campo se llame companyAddress)
-            $codigoPostal = $data['zipCode'] ?? null;
-            $telefono = $data['phone'] ?? null;
-            
-            // Depuración - Mostrar qué datos estamos intentando insertar
-            error_log("Intentando insertar empleado con datos: " . print_r([
-                'id' => $id,
-                'nombre' => $nombre,
-                'apellidos' => $apellidos,
-                'email' => $email,
-                'rol_id' => $rolId,
-                'empresa_id' => $empresaId,
-                'pais' => $pais,
-                'ciudad' => $ciudad,
-                'direccion' => $direccion,
-                'codigo_postal' => $codigoPostal,
-                'telefono' => $telefono
-            ], true));
-            
-            // Verificar si la columna empresa_id existe en la tabla
-            try {
-                $columnsQuery = $db->prepare("SHOW COLUMNS FROM empleados LIKE 'empresa_id'");
-                $columnsQuery->execute();
-                $empresaColumnExists = ($columnsQuery->rowCount() > 0);
-                
-                // Construir la consulta SQL de forma dinámica para evitar problemas de columnas
-                $fields = [];
-                $placeholders = [];
-                $values = [];
-                
-                // Campos obligatorios
-                $fields[] = 'id';
-                $placeholders[] = '?';
-                $values[] = $id;
-                
-                $fields[] = 'nombre';
-                $placeholders[] = '?';
-                $values[] = $nombre;
-                
-                $fields[] = 'apellidos';
-                $placeholders[] = '?';
-                $values[] = $apellidos;
-                
-                $fields[] = 'email';
-                $placeholders[] = '?';
-                $values[] = $email;
-                
-                $fields[] = 'password';
-                $placeholders[] = '?';
-                $values[] = $password;
-                
-                $fields[] = 'rol_id';
-                $placeholders[] = '?';
-                $values[] = $rolId;
-                
-                $fields[] = 'activo';
-                $placeholders[] = '1';
-                
-                // Campos opcionales
-                if ($dni !== null) {
-                    $fields[] = 'dni';
-                    $placeholders[] = '?';
-                    $values[] = $dni;
-                }
-                
-                // Solo añadir empresa_id si la columna existe
-                if ($empresaId !== null && $empresaColumnExists) {
-                    $fields[] = 'empresa_id';
-                    $placeholders[] = '?';
-                    $values[] = $empresaId;
-                }
-                
-                if ($pais !== null) {
-                    $fields[] = 'pais';
-                    $placeholders[] = '?';
-                    $values[] = $pais;
-                }
-                
-                if ($ciudad !== null) {
-                    $fields[] = 'ciudad';
-                    $placeholders[] = '?';
-                    $values[] = $ciudad;
-                }
-                
-                if ($direccion !== null) {
-                    $fields[] = 'direccion';
-                    $placeholders[] = '?';
-                    $values[] = $direccion;
-                }
-                
-                if ($codigoPostal !== null) {
-                    $fields[] = 'codigo_postal';
-                    $placeholders[] = '?';
-                    $values[] = $codigoPostal;
-                }
-                
-                if ($telefono !== null) {
-                    $fields[] = 'telefono';
-                    $placeholders[] = '?';
-                    $values[] = $telefono;
-                }
-                
-                // Construir y ejecutar la consulta
-                $sql = 'INSERT INTO empleados (' . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
-                error_log("SQL generado: " . $sql);
-                
-                $stmt = $db->prepare($sql);
-                $stmt->execute($values);
-                
-            } catch (PDOException $innerEx) {
-                error_log("Error al insertar empleado: " . $innerEx->getMessage());
-                throw $innerEx;
-            }
-        }
+        // Datos básicos
+        $nombre = $esEmpresa ? ($data['nombre'] ?? '') : ($data['nombre'] ?? '');
+        $apellidos = $esEmpresa ? '' : ($data['apellidos'] ?? '');
+        $password = password_hash($data['password'], PASSWORD_DEFAULT);
         
-        logAction($id, 'registro', 'Nuevo usuario registrado');
+        // Determinar el rol_id (5 para empresa, 2 para empleado normal)
+        $rolId = $esEmpresa ? 5 : 2;
         
-        response([
-            'success' => true,
-            'message' => 'Registro completado correctamente'
+        // Datos adicionales
+        $dni = $esEmpresa ? ($data['nif'] ?? null) : ($data['dni'] ?? null);
+        $telefono = $data['telefono'] ?? null;
+        $direccion = $data['direccion'] ?? null;
+        $provincia = $data['provincia'] ?? null;
+        $pais = $data['pais'] ?? null;
+        $codigoPostal = $data['codigo_postal'] ?? null;
+        
+        // Insertar empleado
+        $stmt = $db->prepare('INSERT INTO empleados 
+                              (id, nombre, apellidos, email, password, dni, rol_id, 
+                               telefono, direccion, ciudad, pais, codigo_postal, activo) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
+                              
+        $stmt->execute([
+            $id,
+            $nombre,
+            $apellidos,
+            $data['email'],
+            $password,
+            $dni,
+            $rolId,
+            $telefono,
+            $direccion,
+            $provincia,
+            $pais,
+            $codigoPostal
         ]);
+        
+        logAction($id, 'registro', $esEmpresa ? 'Registro de empresa' : 'Registro de empleado');
+        
+        response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente']);
     } catch (PDOException $e) {
-        error_log('Error al registrar: ' . $e->getMessage() . ' - SQL State: ' . $e->getCode());
-        response(['error' => 'Error al registrar: ' . $e->getMessage()], 500);
+        error_log("Error en registro: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Error al registrar: ' . $e->getMessage()]);
+        exit;
     }
 }
 
+// Función para manejar recuperación de contraseña
 function handleRecuperarPassword() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        response(['error' => 'Método no permitido'], 405);
+        http_response_code(405);
+        echo json_encode(['error' => 'Método no permitido']);
+        exit;
+    }
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['email'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Falta dirección de email']);
+        exit;
     }
     
     try {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!isset($data['email'])) {
-            response(['error' => 'Datos incompletos'], 400);
-        }
-        
-        $email = $data['email'];
         $db = getConnection();
         
-        // Verificar si el email existe
+        // Verificar si existe el email
         $stmt = $db->prepare('SELECT id, nombre FROM empleados WHERE email = ? AND activo = 1');
-        $stmt->execute([$email]);
+        $stmt->execute([$data['email']]);
         $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$empleado) {
-            // No revelamos si el email existe o no para evitar ataques de enumeración
-            response(['success' => true, 'message' => 'Si el correo existe, se ha enviado un enlace de recuperación']);
+            // Por seguridad, no indicamos si existe o no
+            response(['message' => 'Si la dirección existe, recibirás un email con instrucciones']);
         }
         
-        // Generar token único
+        // Generar token de reseteo
         $token = bin2hex(random_bytes(32));
-        $expiryDate = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        $expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
         
-        // Guardar el token en la base de datos
-        $stmt = $db->prepare('INSERT INTO reset_tokens (empleado_id, token, expiry_date) VALUES (?, ?, ?)');
-        $stmt->execute([$empleado['id'], $token, $expiryDate]);
+        // Guardar token en base de datos
+        $stmt = $db->prepare('INSERT INTO reset_tokens (empleado_id, token, expiry_date) 
+                              VALUES (?, ?, ?)');
+        $stmt->execute([$empleado['id'], $token, $expiry]);
         
-        // En un entorno real, aquí enviaríamos el correo electrónico
-        // Por ahora, simulamos que el correo se envía correctamente
+        // En un entorno real, aquí enviaríamos un email con el enlace para resetear
+        // Por ahora solo registramos la acción
+        logAction($empleado['id'], 'solicitar_reset', 'Solicitud de restablecimiento de contraseña');
         
-        // URL de restablecimiento (en un entorno real apuntaría a tu dominio)
-        $resetUrl = 'http://aplium.com/apphora/password-reset-confirm?token=' . $token;
-        
-        // Registro en el log
-        logAction($empleado['id'], 'recuperar_password', 'Solicitud de recuperación de contraseña', $_SERVER['REMOTE_ADDR']);
-        
-        // Respuesta al cliente
-        response(['success' => true, 'message' => 'Se ha enviado un enlace de recuperación a tu correo electrónico']);
-        
+        response(['message' => 'Si la dirección existe, recibirás un email con instrucciones']);
     } catch (PDOException $e) {
-        error_log('Error en recuperación de contraseña: ' . $e->getMessage());
-        response(['error' => 'Error al procesar la solicitud'], 500);
+        error_log("Error en recuperación de contraseña: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Error al procesar la solicitud']);
+        exit;
     }
 }
 
+// Función para manejar el reseteo de contraseña
 function handleResetPassword() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        response(['error' => 'Método no permitido'], 405);
+        http_response_code(405);
+        echo json_encode(['error' => 'Método no permitido']);
+        exit;
+    }
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['token']) || !isset($data['password'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Faltan datos obligatorios']);
+        exit;
     }
     
     try {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!isset($data['token']) || !isset($data['password']) || !isset($data['confirmPassword'])) {
-            response(['error' => 'Datos incompletos'], 400);
-        }
-        
-        if ($data['password'] !== $data['confirmPassword']) {
-            response(['error' => 'Las contraseñas no coinciden'], 400);
-        }
-        
-        $token = $data['token'];
-        $password = $data['password'];
-        
         $db = getConnection();
         
-        // Verificar token válido y no expirado
-        $stmt = $db->prepare('SELECT empleado_id FROM reset_tokens WHERE token = ? AND expiry_date > NOW() AND used = 0');
-        $stmt->execute([$token]);
-        $resetToken = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Verificar token
+        $stmt = $db->prepare('SELECT empleado_id FROM reset_tokens 
+                              WHERE token = ? AND expiry_date > NOW() AND used = 0');
+        $stmt->execute([$data['token']]);
+        $token = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$resetToken) {
-            response(['error' => 'El token no es válido o ha expirado'], 400);
+        if (!$token) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Token inválido o expirado']);
+            exit;
         }
         
-        $empleadoId = $resetToken['empleado_id'];
-        
-        // Actualizar la contraseña
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        // Actualizar contraseña
+        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
         $stmt = $db->prepare('UPDATE empleados SET password = ? WHERE id = ?');
-        $stmt->execute([$hashedPassword, $empleadoId]);
+        $stmt->execute([$hashedPassword, $token['empleado_id']]);
         
-        // Marcar el token como usado
+        // Marcar token como usado
         $stmt = $db->prepare('UPDATE reset_tokens SET used = 1 WHERE token = ?');
-        $stmt->execute([$token]);
+        $stmt->execute([$data['token']]);
         
-        // Registro en el log
-        logAction($empleadoId, 'reset_password', 'Contraseña actualizada correctamente', $_SERVER['REMOTE_ADDR']);
+        logAction($token['empleado_id'], 'reset_password', 'Restablecimiento de contraseña exitoso');
         
-        response(['success' => true, 'message' => 'Contraseña actualizada correctamente']);
-        
+        response(['message' => 'Contraseña actualizada correctamente']);
     } catch (PDOException $e) {
-        error_log('Error en restablecimiento de contraseña: ' . $e->getMessage());
-        response(['error' => 'Error al procesar la solicitud'], 500);
+        error_log("Error en reset de contraseña: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Error al restablecer la contraseña']);
+        exit;
     }
 }

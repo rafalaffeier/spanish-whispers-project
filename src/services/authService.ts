@@ -50,24 +50,26 @@ export const register = async (data: RegistrationData): Promise<void> => {
 
   if (data.type === 'company') {
     // Datos específicos para una empresa
-    apiData.companyName = data.companyName;
-    apiData.companyNif = data.companyNif;
-    apiData.province = data.province;
-    apiData.companyAddress = data.companyAddress;
-    apiData.zipCode = data.zipCode;
-    apiData.country = data.country;
-    apiData.phone = data.phone;
+    apiData.nombre = data.companyName; // Cambio de companyName a nombre para API
+    apiData.nif = data.companyNif; // Cambio de companyNif a nif para API
+    apiData.provincia = data.province;
+    apiData.direccion = data.companyAddress;
+    apiData.codigo_postal = data.zipCode;
+    apiData.pais = data.country;
+    apiData.telefono = data.phone;
+    apiData.es_empresa = true; // Indicador explícito de que es empresa
   } else {
     // Datos específicos para un empleado
-    apiData.firstName = data.firstName;
-    apiData.lastName = data.lastName;
+    apiData.nombre = data.firstName;
+    apiData.apellidos = data.lastName;
     apiData.dni = data.dni;
-    apiData.companyNif = data.companyNif;
-    apiData.province = data.province;
-    apiData.companyAddress = data.companyAddress; // Aunque se llama companyAddress, estamos guardando la dirección del empleado
-    apiData.zipCode = data.zipCode;
-    apiData.country = data.country;
-    apiData.phone = data.phone;
+    apiData.empresa_nif = data.companyNif;
+    apiData.provincia = data.province;
+    apiData.direccion = data.companyAddress; 
+    apiData.codigo_postal = data.zipCode;
+    apiData.pais = data.country;
+    apiData.telefono = data.phone;
+    apiData.es_empresa = false; // Indicador explícito de que es empleado
   }
 
   try {

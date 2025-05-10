@@ -23,6 +23,7 @@ export const fetchWithAuth = async (
 
     console.log(`Making API request to: ${API_BASE_URL}${url}`);
     console.log('Request headers:', headers);
+    console.log('Request body:', options.body);
     
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
