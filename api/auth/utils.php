@@ -1,3 +1,4 @@
+
 <?php
 // Utility functions for authentication
 

@@ -46,7 +46,9 @@ export const register = async (data: RegistrationData): Promise<void> => {
   // Preparar datos para la API según si es empresa o empleado
   const apiData: Record<string, any> = {
     email: data.email,
-    password: data.password
+    password: data.password,
+    // Siempre enviamos el tipo para mayor claridad
+    type: data.type
   };
 
   if (data.type === 'company') {
@@ -60,8 +62,7 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = true;
-    apiData.type = 'company'; // Aseguramos que se envía el tipo correcto
-    apiData.rol = 'empleador'; // Usamos el nuevo rol simplificado
+    apiData.rol = 'empleador'; // Explícitamente indicamos el rol
     
     console.log("Datos de registro de EMPRESA:", JSON.stringify(apiData, null, 2));
   } else {
@@ -71,13 +72,12 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.dni = data.dni;
     apiData.companyNif = data.companyNif;
     apiData.provincia = data.province;
-    apiData.direccion = data.companyAddress; 
+    apiData.direccion = data.address || data.companyAddress; // Usamos address si está disponible
     apiData.codigo_postal = data.zipCode;
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = false;
-    apiData.type = 'employee'; // Aseguramos que se envía el tipo correcto
-    apiData.rol = 'empleado'; // Usamos el nuevo rol simplificado
+    apiData.rol = 'empleado'; // Explícitamente indicamos el rol
     
     console.log("Datos de registro de EMPLEADO:", JSON.stringify(apiData, null, 2));
   }

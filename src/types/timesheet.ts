@@ -1,105 +1,68 @@
+// Definición de tipos para la aplicación de control de jornada
 
+// Tipo para representar un empleado
 export interface Employee {
   id: string;
-  userId?: string; // ID del usuario en la tabla users
+  userId: string; // Añadido userId
   name: string;
-  email?: string;
-  avatar?: string;
-  role: 'empleado' | 'empleador';
-  isCompany?: boolean;
-  // Campos para el perfil
-  firstName?: string;
-  lastName?: string;
-  dni?: string;
-  department?: string;
-  position?: string;
-  division?: string;
-  country?: string;
-  city?: string;
-  address?: string;
-  zipCode?: string;
-  phone?: string;
+  role: string;
+  isCompany: boolean;
 }
 
-export interface PauseRecord {
-  startTime: Date;
-  endTime: Date | null;
-  reason: string;
-}
-
-export interface TimesheetEntry {
+// Tipo para representar una jornada laboral
+export interface Timesheet {
   id: string;
   employeeId: string;
-  employeeName?: string;
-  date: string;
-  startTime: Date | null;
-  pauseTime: Date[];
-  resumeTime: Date[];
-  endTime: Date | null;
-  signature: string | null;
-  pauses: PauseRecord[];  // New field to track pause reasons
-  location: {
-    startLocation: GeolocationPosition | null;
-    endLocation: GeolocationPosition | null;
-  };
-  status: TimesheetStatus;
-  // Nuevos campos para cálculos semanales y mensuales
-  weekNumber?: number;
-  month?: number;
-  year?: number;
-  // Campos para el nuevo diseño
-  recordType?: 'Entrada' | 'Pausa' | 'Salida';
-  incidencia?: string;
-  // Campo para horas totales para vistas mensuales/anuales
-  totalHours?: number;
-  totalHoursFormatted?: string;
+  startTime: string;
+  pauseTime?: string;
+  resumeTime?: string;
+  endTime?: string;
+  status: string;
+  totalTime?: number;
 }
 
-// Enum for timesheet status
+// Tipo para las opciones de estado de una jornada
 export type TimesheetStatus = 'not_started' | 'active' | 'paused' | 'finished';
 
-// Periodo para filtrar timesheets
-export type TimesheetPeriod = 'daily' | 'weekly' | 'monthly';
-
-// Añadimos la interface para la empresa
-export interface Company {
-  id: number;
-  userId?: string; // ID del usuario en la tabla users
-  name: string;
-  cifNif: string;
-  address: string;
-  province: string;
-  zipCode: string;
-  country: string;
-  phone: string;
-  email: string;
-}
-
-// Interface para el formulario de registro
-export interface RegistrationData {
-  type: 'employee' | 'company';
-  firstName?: string;
-  lastName?: string;
-  dni?: string;
-  companyName?: string;
-  companyNif?: string;
-  province?: string;
-  companyAddress?: string;
-  zipCode?: string;
-  country?: string;
-  phone?: string;
+// Datos para inicio de sesión
+export interface LoginData {
   email: string;
   password: string;
-  confirmPassword: string;
 }
 
-// Interface para la recuperación de contraseña
+// Datos para recuperación de contraseña
 export interface PasswordResetRequest {
   email: string;
 }
 
+// Datos para confirmar la recuperación de contraseña
 export interface PasswordResetConfirm {
   token: string;
+  email: string;
   password: string;
-  confirmPassword: string;
+}
+
+// Datos para registro de usuarios
+export interface RegistrationData {
+  type: 'employee' | 'company';
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  
+  // Campos para empleado
+  firstName?: string;
+  lastName?: string;
+  dni?: string;
+  
+  // Campos para empresa
+  companyName?: string;
+  companyNif?: string;
+  
+  // Campos comunes
+  phone: string;
+  country: string;
+  province?: string;
+  companyAddress?: string;
+  address?: string; // Dirección del empleado
+  zipCode?: string;
 }

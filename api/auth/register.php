@@ -109,6 +109,10 @@ function handleRegistro() {
                     throw new Exception("El nombre de la empresa es obligatorio");
                 }
                 
+                if (empty($nifEmpresa)) {
+                    throw new Exception("El NIF/CIF de la empresa es obligatorio");
+                }
+                
                 // Insertar empresa
                 $stmt = $db->prepare('INSERT INTO empresas 
                     (id, user_id, nombre, nif, telefono, direccion, provincia, codigo_postal, pais, email) 
@@ -154,7 +158,7 @@ function handleRegistro() {
                 $apellidos = $data['apellidos'] ?? $data['lastName'] ?? '';
                 $dni = $data['dni'] ?? '';
                 $telefono = $data['telefono'] ?? $data['phone'] ?? '';
-                $direccion = $data['direccion'] ?? $data['companyAddress'] ?? '';
+                $direccion = $data['direccion'] ?? $data['address'] ?? $data['companyAddress'] ?? '';
                 $ciudad = $data['ciudad'] ?? $data['city'] ?? $data['province'] ?? '';
                 $provincia = $data['provincia'] ?? $data['province'] ?? '';
                 $codigoPostal = $data['codigo_postal'] ?? $data['zipCode'] ?? '';
@@ -163,6 +167,10 @@ function handleRegistro() {
                 // Validar datos críticos
                 if (empty($nombre) || empty($apellidos)) {
                     throw new Exception("El nombre y apellidos son obligatorios");
+                }
+                
+                if (empty($dni)) {
+                    throw new Exception("El DNI/NIE del empleado es obligatorio");
                 }
                 
                 // Insertar empleado
