@@ -68,6 +68,11 @@ export const register = async (data: RegistrationData): Promise<any> => {
     apiData.rol = 'empleador';
     apiData.type = 'company';
     
+    // Asegurarnos de que no se envían datos de empleado
+    delete apiData.firstName;
+    delete apiData.lastName;
+    delete apiData.dni;
+    
     console.log("[REGISTRO] Registro de EMPRESA con datos:", JSON.stringify(apiData, null, 2));
   } else {
     // Datos específicos para un empleado
@@ -114,6 +119,8 @@ export const register = async (data: RegistrationData): Promise<any> => {
       const responseText = await directResponse.text();
       console.log("[REGISTRO] Estado de respuesta directa:", directResponse.status, directResponse.statusText);
       console.log("[REGISTRO] Texto de respuesta directa:", responseText);
+      console.log("[REGISTRO] Encabezados de respuesta:", 
+        Array.from(directResponse.headers.entries()).map(([key, value]) => `${key}: ${value}`).join(', '));
       
       // Intentar parsear como JSON si es posible
       try {
@@ -134,7 +141,9 @@ export const register = async (data: RegistrationData): Promise<any> => {
       } catch (parseError) {
         // Si no es JSON, manejamos el texto directamente
         console.error("[REGISTRO] Error al parsear respuesta:", parseError);
-        console.error("[REGISTRO] Respuesta no es JSON válido:", responseText);
+        console.error("[REGISTRO] Respuesta no es JSON válido. Contenido:", responseText);
+        console.error("[REGISTRO] Longitud de respuesta:", responseText.length);
+        console.error("[REGISTRO] Primeros 100 caracteres:", responseText.substring(0, 100));
         
         // Si aún así la respuesta es exitosa
         if (directResponse.ok) {
@@ -153,6 +162,7 @@ export const register = async (data: RegistrationData): Promise<any> => {
       console.error("[REGISTRO] Mensaje de error:", fetchError.message);
       
       if (fetchError.name === 'AbortError') {
+        console.error("[REGISTRO] La solicitud fue abortada por timeout");
         toast.error("La solicitud ha tardado demasiado tiempo. Inténtelo de nuevo.");
         throw new Error("La solicitud ha tardado demasiado tiempo");
       }

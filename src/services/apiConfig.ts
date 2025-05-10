@@ -15,6 +15,8 @@ console.log("[API CONFIG] Es desarrollo:", isDevelopment);
 console.log("[API CONFIG] API Base URL:", API_BASE_URL);
 console.log("[API CONFIG] URL completa actual:", window.location.href);
 console.log("[API CONFIG] Path:", window.location.pathname);
+console.log("[API CONFIG] Origin:", window.location.origin);
+console.log("[API CONFIG] Protocol:", window.location.protocol);
 
 // Token de autenticación
 let authToken: string | null = null;

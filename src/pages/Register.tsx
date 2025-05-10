@@ -15,16 +15,16 @@ import { register as registerUser } from '@/services/authService';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/services/apiConfig';
 
-// Esquema de validación del formulario
+// Esquema de validación del formulario - corregido para validación condicional
 const formSchema = z.object({
   type: z.enum(['employee', 'company']),
-  firstName: z.string().min(2, 'El nombre es requerido').optional(),
-  lastName: z.string().min(2, 'Los apellidos son requeridos').optional(),
-  dni: z.string().min(9, 'El NIF/CIF/ID debe tener al menos 9 caracteres').optional(),
-  companyName: z.string().min(2, 'El nombre de la empresa es requerido').optional(),
-  companyNif: z.string().min(9, 'El NIF/CIF de la empresa debe tener al menos 9 caracteres').optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  dni: z.string().optional(),
+  companyName: z.string().optional(),
+  companyNif: z.string().optional(),
   province: z.string().min(2, 'La provincia es requerida').optional(),
-  companyAddress: z.string().min(5, 'La dirección es requerida').optional(),
+  companyAddress: z.string().optional(),
   zipCode: z.string().min(5, 'El código postal debe tener al menos 5 caracteres').optional(),
   country: z.string().min(2, 'El país es requerido'),
   phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos'),
@@ -34,24 +34,67 @@ const formSchema = z.object({
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
-}).refine(data => {
-  // Validación condicional para empleado
+}).superRefine((data, ctx) => {
+  // Validación según el tipo de usuario
   if (data.type === 'employee') {
-    return !!data.firstName && !!data.lastName && !!data.dni;
+    // Validación para empleados
+    if (!data.firstName || data.firstName.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El nombre es requerido",
+        path: ["firstName"]
+      });
+    }
+    
+    if (!data.lastName || data.lastName.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Los apellidos son requeridos",
+        path: ["lastName"]
+      });
+    }
+    
+    if (!data.dni || data.dni.length < 9) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El NIF/CIF/ID debe tener al menos 9 caracteres",
+        path: ["dni"]
+      });
+    }
+    
+    if (!data.companyNif || data.companyNif.length < 9) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El NIF/CIF de empresa es requerido",
+        path: ["companyNif"]
+      });
+    }
+  } else if (data.type === 'company') {
+    // Validación para empresas
+    if (!data.companyName || data.companyName.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El nombre de la empresa es requerido",
+        path: ["companyName"]
+      });
+    }
+    
+    if (!data.companyNif || data.companyNif.length < 9) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El NIF/CIF de la empresa debe tener al menos 9 caracteres",
+        path: ["companyNif"]
+      });
+    }
+    
+    if (!data.companyAddress || data.companyAddress.length < 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La dirección de la empresa es requerida",
+        path: ["companyAddress"]
+      });
+    }
   }
-  return true;
-}, {
-  message: "Todos los campos del empleado son requeridos",
-  path: ["firstName"],
-}).refine(data => {
-  // Validación condicional para empresa
-  if (data.type === 'company') {
-    return !!data.companyName && !!data.companyNif;
-  }
-  return true;
-}, {
-  message: "Todos los campos de la empresa son requeridos",
-  path: ["companyName"],
 });
 
 const Register = () => {
@@ -81,6 +124,7 @@ const Register = () => {
       password: '',
       confirmPassword: ''
     },
+    mode: 'onChange' // Validar al cambiar los campos
   });
   
   // Observar el valor del NIF de la empresa para autocompletar el nombre
@@ -127,40 +171,6 @@ const Register = () => {
       addToLog(`Iniciando registro de tipo: ${values.type}`);
       addToLog(`Datos del formulario: ${JSON.stringify(values)}`);
       
-      // Verificaciones adicionales según el tipo
-      if (values.type === 'company' && (!values.companyName || !values.companyNif || !values.companyAddress)) {
-        const missingFields = [];
-        if (!values.companyName) missingFields.push("Nombre de empresa");
-        if (!values.companyNif) missingFields.push("NIF/CIF de empresa");
-        if (!values.companyAddress) missingFields.push("Dirección de empresa");
-        
-        const errorMsg = `Campos requeridos para empresa: ${missingFields.join(", ")}`;
-        addToLog(`Error: ${errorMsg}`);
-        toast.error(errorMsg);
-        setApiError(errorMsg);
-        setIsSubmitting(false);
-        return;
-      }
-      
-      if (values.type === 'employee' && (!values.firstName || !values.lastName || !values.dni || !values.companyNif)) {
-        const missingFields = [];
-        if (!values.firstName) missingFields.push("Nombre");
-        if (!values.lastName) missingFields.push("Apellidos");
-        if (!values.dni) missingFields.push("DNI/NIE");
-        if (!values.companyNif) missingFields.push("NIF/CIF de empresa");
-        
-        const errorMsg = `Campos requeridos para empleado: ${missingFields.join(", ")}`;
-        addToLog(`Error: ${errorMsg}`);
-        toast.error(errorMsg);
-        setApiError(errorMsg);
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Enviar datos al backend
-      toast.info('Enviando datos de registro...');
-      addToLog('Enviando datos al backend...');
-      
       // Preparar datos para el registro
       const registrationData: RegistrationData = {
         type: values.type,
@@ -169,21 +179,26 @@ const Register = () => {
         confirmPassword: values.confirmPassword,
         phone: values.phone,
         country: values.country,
-        province: values.province,
-        zipCode: values.zipCode
+        province: values.province || '',
+        zipCode: values.zipCode || ''
       };
       
       // Añadir campos según el tipo de registro
       if (values.type === 'company') {
-        registrationData.companyName = values.companyName;
-        registrationData.companyNif = values.companyNif;
-        registrationData.companyAddress = values.companyAddress;
+        registrationData.companyName = values.companyName || '';
+        registrationData.companyNif = values.companyNif || '';
+        registrationData.companyAddress = values.companyAddress || '';
+        
+        // Limpiar campos de empleado para evitar confusiones
+        delete registrationData.firstName;
+        delete registrationData.lastName;
+        delete registrationData.dni;
       } else {
-        registrationData.firstName = values.firstName;
-        registrationData.lastName = values.lastName;
-        registrationData.dni = values.dni;
-        registrationData.companyNif = values.companyNif;
-        registrationData.address = values.companyAddress; // Usar la misma dirección para empleado
+        registrationData.firstName = values.firstName || '';
+        registrationData.lastName = values.lastName || '';
+        registrationData.dni = values.dni || '';
+        registrationData.companyNif = values.companyNif || '';
+        registrationData.address = values.companyAddress || ''; // Usar la misma dirección para empleado
       }
       
       addToLog(`Datos preparados para API: ${JSON.stringify(registrationData, null, 2)}`);
