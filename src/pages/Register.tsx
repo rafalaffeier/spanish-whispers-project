@@ -23,7 +23,7 @@ const formSchema = z.object({
   companyName: z.string().min(2, 'El nombre de la empresa es requerido').optional(),
   companyNif: z.string().min(9, 'El NIF/CIF de la empresa debe tener al menos 9 caracteres').optional(),
   province: z.string().min(2, 'La provincia es requerida').optional(),
-  companyAddress: z.string().min(5, 'La dirección del empleado es requerida').optional(),
+  companyAddress: z.string().min(5, 'La dirección es requerida').optional(),
   zipCode: z.string().min(5, 'El código postal debe tener al menos 5 caracteres').optional(),
   country: z.string().min(2, 'El país es requerido'),
   phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos'),
@@ -68,8 +68,7 @@ const Register = () => {
     name: 'companyNif'
   });
   
-  // Efecto para simular la búsqueda de la empresa por NIF
-  // En un escenario real, esto sería una llamada a la API
+  // Efecto para buscar la empresa por NIF
   useEffect(() => {
     if (companyNif && isEmployee && companyNif.length >= 9) {
       // Aquí se haría la llamada al backend para buscar la empresa
@@ -81,6 +80,9 @@ const Register = () => {
         } else if (companyNif === "A87654321") {
           setCompanyNameFromNif("Empresa Ejemplo S.A.");
           form.setValue('companyName', "Empresa Ejemplo S.A.");
+        } else if (companyNif === "y8619064nn") {
+          setCompanyNameFromNif("Empresa de Prueba");
+          form.setValue('companyName', "Empresa de Prueba");
         } else {
           setCompanyNameFromNif("");
           form.setValue('companyName', "");
@@ -160,63 +162,67 @@ const Register = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Primera fila */}
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="flex overflow-hidden rounded-md border">
-                        <div className="flex items-center justify-center bg-gray-100 px-4">
-                          <User className="h-5 w-5 text-gray-500" />
-                        </div>
-                        <Input placeholder="Nombre" className="border-0 flex-1" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input placeholder="Apellidos" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Campos para empleado */}
+              {isEmployee && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="flex overflow-hidden rounded-md border">
+                            <div className="flex items-center justify-center bg-gray-100 px-4">
+                              <User className="h-5 w-5 text-gray-500" />
+                            </div>
+                            <Input placeholder="Nombre" className="border-0 flex-1" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input placeholder="Apellidos" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Segunda fila */}
-              <FormField
-                control={form.control}
-                name="dni"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input placeholder="NIF / CIF / ID" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="dni"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input placeholder="NIF / CIF / ID del empleado" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
               
+              {/* Campos para NIF de empresa (visible en ambos casos) */}
               <FormField
                 control={form.control}
                 name="companyNif"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className={isEmployee ? "block" : "hidden"}>
-                      {isEmployee ? "ID de la empresa donde trabajas" : ""}
+                  <FormItem className={isEmployee ? "md:col-span-1" : "md:col-span-2"}>
+                    <FormLabel>
+                      {isEmployee ? "NIF/CIF de la empresa donde trabajas" : "NIF/CIF de la empresa"}
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder={isEmployee ? "NIF/CIF de tu empresa" : "NIF / CIF / ID de la empresa"} 
+                        placeholder={isEmployee ? "NIF/CIF de tu empresa" : "NIF/CIF de la empresa"} 
                         {...field} 
                       />
                     </FormControl>
@@ -225,12 +231,15 @@ const Register = () => {
                 )}
               />
 
-              {/* Tercera fila */}
+              {/* Nombre de la empresa */}
               <FormField
                 control={form.control}
                 name="companyName"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className={isEmployee ? "md:col-span-1" : "md:col-span-2"}>
+                    <FormLabel>
+                      {isEmployee ? "Nombre de la empresa donde trabajas" : "Nombre de la empresa"}
+                    </FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -255,11 +264,13 @@ const Register = () => {
                 )}
               />
               
+              {/* País */}
               <FormField
                 control={form.control}
                 name="country"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{isEmployee ? "País del empleado" : "País de la empresa"}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="País" />
@@ -276,12 +287,13 @@ const Register = () => {
                 )}
               />
 
-              {/* Cuarta fila */}
+              {/* Provincia */}
               <FormField
                 control={form.control}
                 name="province"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{isEmployee ? "Provincia del empleado" : "Provincia de la empresa"}</FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -295,14 +307,16 @@ const Register = () => {
                 )}
               />
               
+              {/* Dirección */}
               <FormField
                 control={form.control}
                 name="companyAddress"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{isEmployee ? "Dirección del empleado" : "Dirección de la empresa"}</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder={isEmployee ? "Calle del empleado" : "Calle de la empresa"} 
+                        placeholder={isEmployee ? "Dirección del empleado" : "Dirección de la empresa"} 
                         {...field} 
                       />
                     </FormControl>
@@ -311,12 +325,13 @@ const Register = () => {
                 )}
               />
 
-              {/* Quinta fila */}
+              {/* Código postal */}
               <FormField
                 control={form.control}
                 name="zipCode"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{isEmployee ? "Código postal del empleado" : "Código postal de la empresa"}</FormLabel>
                     <FormControl>
                       <Input placeholder="Código postal" {...field} />
                     </FormControl>
@@ -325,11 +340,13 @@ const Register = () => {
                 )}
               />
               
+              {/* Teléfono */}
               <FormField
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>{isEmployee ? "Teléfono del empleado" : "Teléfono de la empresa"}</FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -343,12 +360,13 @@ const Register = () => {
                 )}
               />
 
-              {/* Sexta fila */}
+              {/* Email */}
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Correo electrónico</FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -362,11 +380,13 @@ const Register = () => {
                 )}
               />
               
+              {/* Contraseña */}
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
@@ -380,12 +400,13 @@ const Register = () => {
                 )}
               />
 
-              {/* Séptima fila (solo una columna) */}
+              {/* Confirmar contraseña */}
               <FormField
                 control={form.control}
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Confirmar contraseña</FormLabel>
                     <FormControl>
                       <div className="flex overflow-hidden rounded-md border">
                         <div className="flex items-center justify-center bg-gray-100 px-4">
