@@ -10,33 +10,38 @@ export const login = async (email: string, password: string): Promise<{
   employee: Employee,
   token: string
 }> => {
-  const response = await fetchWithAuth('/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetchWithAuth('/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (response && response.token) {
-    setAuthToken(response.token);
-    
-    // Mapear respuesta a formato Employee
-    const employee: Employee = {
-      id: response.empleado.id,
-      userId: response.empleado.userId,
-      name: response.empleado.nombre,
-      role: response.empleado.rol,
-      isCompany: response.empleado.esEmpresa || false
-    };
+    if (response && response.token) {
+      setAuthToken(response.token);
+      
+      // Mapear respuesta a formato Employee
+      const employee: Employee = {
+        id: response.empleado.id,
+        userId: response.empleado.userId,
+        name: response.empleado.nombre,
+        role: response.empleado.rol,
+        isCompany: response.empleado.esEmpresa || false
+      };
 
-    // Guardar el empleado en localStorage para recuperarlo al recargar
-    localStorage.setItem('currentEmployee', JSON.stringify(employee));
+      // Guardar el empleado en localStorage para recuperarlo al recargar
+      localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
-    return {
-      employee,
-      token: response.token
-    };
+      return {
+        employee,
+        token: response.token
+      };
+    }
+
+    throw new Error('Credenciales inválidas');
+  } catch (error: any) {
+    console.error('Error durante el login:', error);
+    throw error;
   }
-
-  throw new Error('Credenciales inválidas');
 };
 
 // Función para registrar usuarios (empleados o empresas)
@@ -87,9 +92,9 @@ export const register = async (data: RegistrationData): Promise<any> => {
     
     console.log("Enviando solicitud a /registro con datos:", JSON.stringify(apiData, null, 2));
     
-    // Enviar solicitud con un timeout de 15 segundos para evitar esperas indefinidas
+    // Enviar solicitud con un timeout de 30 segundos para evitar esperas indefinidas
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     const response = await fetchWithAuth('/registro', {
       method: 'POST',

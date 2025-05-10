@@ -38,10 +38,17 @@ export const fetchWithAuth = async (
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos de timeout
+
+    const fetchOptions = {
       ...options,
-      headers
-    });
+      headers,
+      signal: options.signal || controller.signal
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+    clearTimeout(timeoutId);
 
     // Verificar si la respuesta es un archivo
     const contentType = response.headers.get('content-type');
@@ -49,12 +56,28 @@ export const fetchWithAuth = async (
       return response.blob();
     }
 
-    // Para otros tipos, intentar parsear como JSON
+    // En caso de error 401 (no autorizado)
+    if (response.status === 401) {
+      console.error('Error de autenticación: No autorizado');
+      toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
+      throw new Error('No autorizado. Sesión expirada.');
+    }
+
+    // En caso de error 404 (no encontrado)
+    if (response.status === 404) {
+      console.error(`Error 404: Recurso no encontrado - ${endpoint}`);
+      throw new Error(`Recurso no encontrado: ${endpoint}`);
+    }
+
+    // Intentar parsear como JSON
     let data;
+    const text = await response.text();
+    
     try {
-      data = await response.json();
+      data = text ? JSON.parse(text) : {};
     } catch (e) {
-      console.error('Error al parsear respuesta JSON:', e);
+      console.error('Error al parsear respuesta como JSON:', e);
+      console.error('Texto de respuesta:', text);
       throw new Error('Error al procesar la respuesta del servidor');
     }
 
