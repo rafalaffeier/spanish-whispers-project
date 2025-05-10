@@ -2,7 +2,7 @@
 <?php
 // API RESTful principal
 require_once 'config.php';
-require_once 'auth.php';
+require_once 'auth/index.php';
 require_once 'utils.php';
 
 // Verificar auth para rutas protegidas
