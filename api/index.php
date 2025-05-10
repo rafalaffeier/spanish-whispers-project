@@ -1,3 +1,4 @@
+
 <?php
 // API RESTful principal
 require_once 'config.php';
@@ -197,8 +198,9 @@ function handleRegistro() {
             $dni = $data['dni'] ?? null;
             $pais = $data['country'] ?? 'España';
             $ciudad = $data['province'] ?? null;
-            $telefono = $data['phone'] ?? null;
+            $direccion = $data['companyAddress'] ?? null; // Guardamos la dirección del empleado (aunque el campo se llame companyAddress)
             $codigoPostal = $data['zipCode'] ?? null;
+            $telefono = $data['phone'] ?? null;
             
             // Depuración - Mostrar qué datos estamos intentando insertar
             error_log("Intentando insertar empleado con datos: " . print_r([
@@ -210,6 +212,8 @@ function handleRegistro() {
                 'empresa_id' => $empresaId,
                 'pais' => $pais,
                 'ciudad' => $ciudad,
+                'direccion' => $direccion,
+                'codigo_postal' => $codigoPostal,
                 'telefono' => $telefono
             ], true));
             
@@ -269,6 +273,12 @@ function handleRegistro() {
                 $fields[] = 'ciudad';
                 $placeholders[] = '?';
                 $values[] = $ciudad;
+            }
+            
+            if ($direccion !== null) {
+                $fields[] = 'direccion';
+                $placeholders[] = '?';
+                $values[] = $direccion;
             }
             
             if ($codigoPostal !== null) {

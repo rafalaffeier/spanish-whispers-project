@@ -1,4 +1,3 @@
-
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
 import { Employee, TimesheetEntry, PauseRecord, RegistrationData, PasswordResetRequest, PasswordResetConfirm } from '@/types/timesheet';
@@ -357,9 +356,38 @@ export const login = async (email: string, password: string): Promise<{
 
 // Función para registrar usuarios (empleados o empresas)
 export const register = async (data: RegistrationData): Promise<void> => {
+  // Preparar datos para la API según si es empresa o empleado
+  const apiData: Record<string, any> = {
+    type: data.type,
+    email: data.email,
+    password: data.password
+  };
+
+  if (data.type === 'company') {
+    // Datos específicos para una empresa
+    apiData.companyName = data.companyName;
+    apiData.companyNif = data.companyNif;
+    apiData.province = data.province;
+    apiData.companyAddress = data.companyAddress;
+    apiData.zipCode = data.zipCode;
+    apiData.country = data.country;
+    apiData.phone = data.phone;
+  } else {
+    // Datos específicos para un empleado
+    apiData.firstName = data.firstName;
+    apiData.lastName = data.lastName;
+    apiData.dni = data.dni;
+    apiData.companyNif = data.companyNif;
+    apiData.province = data.province;
+    apiData.companyAddress = data.companyAddress; // Aunque se llama companyAddress, estamos guardando la dirección del empleado
+    apiData.zipCode = data.zipCode;
+    apiData.country = data.country;
+    apiData.phone = data.phone;
+  }
+
   await fetchWithAuth('/registro', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(apiData),
   });
 };
 

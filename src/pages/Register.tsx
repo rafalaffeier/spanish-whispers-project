@@ -301,7 +301,10 @@ const Register = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder={isEmployee ? "Calle del empleado" : "Calle de la empresa"} {...field} />
+                      <Input 
+                        placeholder={isEmployee ? "Calle del empleado" : "Calle de la empresa"} 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
