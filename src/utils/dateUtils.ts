@@ -35,3 +35,31 @@ export const formatDateTime = (value: string | Date | null, format: 'HH:MM' | 'D
       return date.toString();
   }
 };
+
+/**
+ * Verifica si un valor es una fecha válida
+ * @param value - Valor a verificar
+ * @returns true si es una fecha válida, false en caso contrario
+ */
+export const isValidDate = (value: any): boolean => {
+  if (!value) return false;
+  if (value instanceof Date) return !isNaN(value.getTime());
+  
+  const dateObj = new Date(value);
+  return !isNaN(dateObj.getTime());
+};
+
+/**
+ * Convierte un valor que puede ser string o Date a un objeto Date seguro para operaciones
+ * Esta función es similar a ensureDate pero asegura que siempre devuelve una Date válida
+ * @param value - Valor a convertir (string | Date)
+ * @param defaultDate - Fecha por defecto si el valor es inválido (opcional)
+ * @returns Objeto Date válido
+ */
+export const toSafeDate = (value: string | Date | null, defaultDate: Date = new Date()): Date => {
+  if (!value) return defaultDate;
+  if (value instanceof Date) return isNaN(value.getTime()) ? defaultDate : value;
+  
+  const dateObj = new Date(value);
+  return isNaN(dateObj.getTime()) ? defaultDate : dateObj;
+};

@@ -40,7 +40,7 @@ export const login = async (email: string, password: string): Promise<{
 };
 
 // Función para registrar usuarios (empleados o empresas)
-export const register = async (data: RegistrationData): Promise<void> => {
+export const register = async (data: RegistrationData): Promise<any> => {
   console.log("Enviando datos de registro:", JSON.stringify(data, null, 2));
   
   // Preparar datos para la API según si es empresa o empleado

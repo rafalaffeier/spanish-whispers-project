@@ -31,10 +31,10 @@ export interface Employee {
 export interface Timesheet {
   id: string;
   employeeId: string;
-  startTime: string;
-  pauseTime?: string;
-  resumeTime?: string;
-  endTime?: string;
+  startTime: string | Date;
+  pauseTime?: string | Date;
+  resumeTime?: string | Date;
+  endTime?: string | Date;
   status: string;
   totalTime?: number;
 }

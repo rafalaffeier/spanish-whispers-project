@@ -2,6 +2,7 @@
 // Funciones auxiliares para la API
 import { toast } from "sonner";
 import { API_BASE_URL, getAuthToken } from './apiConfig';
+import { isValidDate, toSafeDate } from '@/utils/dateUtils';
 
 // Función base para peticiones HTTP con mejor manejo de errores
 export const fetchWithAuth = async (
