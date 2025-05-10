@@ -27,6 +27,11 @@ export const fetchWithAuth = async (
 ): Promise<any> => {
   try {
     console.log(`Fetching ${API_BASE_URL}${endpoint}`);
+    console.log(`Request method: ${options.method || 'GET'}`);
+    
+    if (options.body) {
+      console.log(`Request body: ${options.body}`);
+    }
     
     const token = getAuthToken();
     const headers: HeadersInit = {
@@ -47,8 +52,17 @@ export const fetchWithAuth = async (
       signal: options.signal || controller.signal
     };
 
+    // Log completo de la solicitud
+    console.log("Enviando solicitud completa:", {
+      url: `${API_BASE_URL}${endpoint}`,
+      options: JSON.stringify(fetchOptions, null, 2)
+    });
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
     clearTimeout(timeoutId);
+
+    // Log del status de respuesta
+    console.log(`Response status: ${response.status} ${response.statusText}`);
 
     // Verificar si la respuesta es un archivo
     const contentType = response.headers.get('content-type');
@@ -73,8 +87,12 @@ export const fetchWithAuth = async (
     let data;
     const text = await response.text();
     
+    // Log del texto de respuesta
+    console.log("Response text:", text);
+    
     try {
       data = text ? JSON.parse(text) : {};
+      console.log("Response data parsed:", data);
     } catch (e) {
       console.error('Error al parsear respuesta como JSON:', e);
       console.error('Texto de respuesta:', text);
@@ -84,6 +102,7 @@ export const fetchWithAuth = async (
     // Si hay un error del lado del servidor
     if (!response.ok) {
       console.error('Error de API:', data);
+      toast.error(data.error || `Error ${response.status}: ${response.statusText}`);
       throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
     }
 
@@ -91,10 +110,12 @@ export const fetchWithAuth = async (
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.error('Solicitud cancelada por timeout');
+      toast.error('La solicitud ha tardado demasiado tiempo. Inténtelo de nuevo.');
       throw new Error('La solicitud ha tardado demasiado tiempo');
     }
     
     console.error('Error en fetchWithAuth:', error);
+    toast.error(`Error: ${error.message || 'Error desconocido'}`);
     throw error;
   }
 };
