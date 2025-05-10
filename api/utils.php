@@ -1,3 +1,4 @@
+
 <?php
 // Funciones de utilidad para la API
 

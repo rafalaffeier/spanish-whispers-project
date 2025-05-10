@@ -50,7 +50,7 @@ export const register = async (data: RegistrationData): Promise<void> => {
   };
 
   if (data.type === 'company') {
-    // Datos específicos para una empresa
+    // Datos específicos para una empresa (empleador)
     apiData.nombre = data.companyName;
     apiData.apellidos = ""; // Campo requerido pero vacío para empresas
     apiData.nif = data.companyNif;
@@ -61,6 +61,7 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.telefono = data.phone;
     apiData.es_empresa = true;
     apiData.type = 'company'; // Aseguramos que se envía el tipo correcto
+    apiData.rol = 'empleador'; // Usamos el nuevo rol simplificado
     
     console.log("Datos de registro de EMPRESA:", JSON.stringify(apiData, null, 2));
   } else {
@@ -76,6 +77,7 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.telefono = data.phone;
     apiData.es_empresa = false;
     apiData.type = 'employee'; // Aseguramos que se envía el tipo correcto
+    apiData.rol = 'empleado'; // Usamos el nuevo rol simplificado
     
     console.log("Datos de registro de EMPLEADO:", JSON.stringify(apiData, null, 2));
   }

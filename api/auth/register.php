@@ -74,8 +74,20 @@ function handleRegistro() {
             // 1. Crear el registro de usuario (común para ambos)
             $password = password_hash($data['password'], PASSWORD_DEFAULT);
             
+            // Determinar el rol_id basado en el valor de $esEmpleador
             // Rol: 1 para empleador, 2 para empleado
             $rolId = $esEmpleador ? 1 : 2;
+            
+            // Si se proporciona un rol explícito, asegurarse de que sea consistente
+            if (isset($data['rol'])) {
+                if ($data['rol'] === 'empleador') {
+                    $rolId = 1;
+                    $esEmpleador = true;
+                } else if ($data['rol'] === 'empleado') {
+                    $rolId = 2;
+                    $esEmpleador = false;
+                }
+            }
             
             // Insertar usuario
             $stmt = $db->prepare('INSERT INTO users (id, email, password, rol_id, activo) VALUES (?, ?, ?, ?, 1)');
@@ -186,7 +198,8 @@ function handleRegistro() {
                 'message' => $mensaje, 
                 'id' => $userId, 
                 'entityId' => $entidadId,
-                'type' => $esEmpleador ? 'company' : 'employee'
+                'type' => $esEmpleador ? 'company' : 'employee',
+                'role' => $esEmpleador ? 'empleador' : 'empleado'
             ]);
             
         } catch (Exception $e) {
