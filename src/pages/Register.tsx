@@ -13,6 +13,7 @@ import { ChevronDown, Mail, Lock, User, Building, MapPin, Phone } from 'lucide-r
 import { RegistrationData } from '@/types/timesheet';
 import { register as registerUser } from '@/services/authService';
 import { Textarea } from '@/components/ui/textarea';
+import { API_BASE_URL } from '@/services/apiConfig';
 
 // Esquema de validación del formulario
 const formSchema = z.object({
@@ -59,7 +60,8 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [companyNameFromNif, setCompanyNameFromNif] = useState<string>("");
-  const [debugMode, setDebugMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(true); // Activamos el modo debug por defecto para troubleshooting
+  const [requestLogs, setRequestLogs] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -111,13 +113,19 @@ const Register = () => {
     }
   }, [companyNif, isEmployee, form]);
 
+  // Función para añadir entradas al log de depuración
+  const addToLog = (message: string) => {
+    setRequestLogs(prev => [...prev, `${new Date().toISOString()}: ${message}`]);
+    console.log(`[REGISTRO] ${message}`);
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     setApiError(null);
     
     try {
-      console.log("Enviando datos de registro:", values);
-      console.log("Tipo de registro:", values.type);
+      addToLog(`Iniciando registro de tipo: ${values.type}`);
+      addToLog(`Datos del formulario: ${JSON.stringify(values)}`);
       
       // Verificaciones adicionales según el tipo
       if (values.type === 'company' && (!values.companyName || !values.companyNif || !values.companyAddress)) {
@@ -127,7 +135,7 @@ const Register = () => {
         if (!values.companyAddress) missingFields.push("Dirección de empresa");
         
         const errorMsg = `Campos requeridos para empresa: ${missingFields.join(", ")}`;
-        console.error(errorMsg);
+        addToLog(`Error: ${errorMsg}`);
         toast.error(errorMsg);
         setApiError(errorMsg);
         setIsSubmitting(false);
@@ -142,7 +150,7 @@ const Register = () => {
         if (!values.companyNif) missingFields.push("NIF/CIF de empresa");
         
         const errorMsg = `Campos requeridos para empleado: ${missingFields.join(", ")}`;
-        console.error(errorMsg);
+        addToLog(`Error: ${errorMsg}`);
         toast.error(errorMsg);
         setApiError(errorMsg);
         setIsSubmitting(false);
@@ -151,6 +159,7 @@ const Register = () => {
 
       // Enviar datos al backend
       toast.info('Enviando datos de registro...');
+      addToLog('Enviando datos al backend...');
       
       // Preparar datos para el registro
       const registrationData: RegistrationData = {
@@ -177,32 +186,33 @@ const Register = () => {
         registrationData.address = values.companyAddress; // Usar la misma dirección para empleado
       }
       
-      console.log("Datos para registro:", JSON.stringify(registrationData, null, 2));
+      addToLog(`Datos preparados para API: ${JSON.stringify(registrationData, null, 2)}`);
       
       try {
+        addToLog('Llamando a función registerUser...');
         const response = await registerUser(registrationData);
-        console.log("Respuesta del servidor:", response);
+        addToLog(`Respuesta recibida: ${JSON.stringify(response)}`);
         toast.success('Registro completado exitosamente! Redirigiendo al login...');
         
         // Redireccionar al login después de un breve retraso
         setTimeout(() => navigate('/login'), 2000);
       } catch (error: any) {
-        console.error('Error durante el registro:', error);
-        
         const errorMessage = error instanceof Error 
           ? error.message 
           : 'Error al registrarse. Por favor, intenta nuevamente.';
+        
+        addToLog(`Error en el registro: ${errorMessage}`);
+        addToLog(`Error completo: ${JSON.stringify(error, null, 2)}`);
         
         setApiError(errorMessage);
         toast.error(`Error al registrarse: ${errorMessage}`);
       }
     } catch (error: any) {
-      console.error('Error durante la validación:', error);
-      
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Error al validar los datos. Por favor, revisa el formulario.';
       
+      addToLog(`Error en validación: ${errorMessage}`);
       setApiError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -213,7 +223,7 @@ const Register = () => {
   const toggleUserType = (checked: boolean) => {
     setIsEmployee(!checked);
     const newType = !checked ? 'employee' : 'company';
-    console.log(`Cambiando tipo de usuario a: ${newType}`);
+    addToLog(`Cambiando tipo de usuario a: ${newType}`);
     form.setValue('type', newType);
     
     // Resetear campos no relevantes según el tipo
@@ -527,29 +537,64 @@ const Register = () => {
                 type="submit" 
                 className="bg-[#5271FF] hover:bg-[#3a55d9] text-white px-8 py-2"
                 disabled={isSubmitting}
+                onClick={() => {
+                  addToLog("Botón de envío clickeado");
+                }}
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar'}
               </Button>
               
-              {/* Botón para activar modo debug - visible solo en desarrollo */}
-              {process.env.NODE_ENV === 'development' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDebugMode(!debugMode)}
-                >
-                  {debugMode ? "Desactivar Debug" : "Activar Debug"}
-                </Button>
-              )}
+              {/* Botón para activar modo debug */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDebugMode(!debugMode)}
+              >
+                {debugMode ? "Ocultar Debug" : "Mostrar Debug"}
+              </Button>
             </div>
             
-            {/* Panel de debug */}
+            {/* Panel de debug - siempre activado para troubleshooting */}
             {debugMode && (
               <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h3 className="text-sm font-medium mb-2">Datos del formulario:</h3>
-                <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-40">
+                <h3 className="text-sm font-medium mb-2">Estado del formulario:</h3>
+                <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-40 p-2 bg-gray-100 rounded">
                   {JSON.stringify(form.getValues(), null, 2)}
                 </pre>
+                
+                <h3 className="text-sm font-medium mt-4 mb-2">Log de eventos:</h3>
+                <div className="text-xs bg-black text-green-400 p-2 rounded overflow-auto max-h-60 font-mono">
+                  {requestLogs.map((log, index) => (
+                    <div key={index}>{log}</div>
+                  ))}
+                  {requestLogs.length === 0 && <div>No hay eventos registrados</div>}
+                </div>
+
+                <div className="mt-4 flex justify-between">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setRequestLogs([])}
+                  >
+                    Limpiar logs
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      addToLog("Test de conectividad: " + API_BASE_URL);
+                      // Intentar una petición simple para verificar conectividad
+                      fetch(API_BASE_URL + "/ping")
+                        .then(res => res.text())
+                        .then(data => addToLog("Respuesta de ping: " + data))
+                        .catch(err => addToLog("Error de ping: " + err.message));
+                    }}
+                  >
+                    Test API
+                  </Button>
+                </div>
               </div>
             )}
           </form>
