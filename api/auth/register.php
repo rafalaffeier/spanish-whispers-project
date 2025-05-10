@@ -47,21 +47,24 @@ function handleRegistro() {
         }
         
         // Determinar si es registro de empresa (empleador) o empleado
-        // Si es_empresa está definido, lo usamos; si no, verificamos type
+        $esEmpleador = false;
+        
+        // Método 1: Verificar por el campo es_empresa
         if (isset($data['es_empresa'])) {
-            $esEmpleador = $data['es_empresa'] === true;
-        } else if (isset($data['type'])) {
+            $esEmpleador = $data['es_empresa'] === true || $data['es_empresa'] === "true" || $data['es_empresa'] === 1;
+        }
+        // Método 2: Verificar por el campo type
+        else if (isset($data['type'])) {
             $esEmpleador = $data['type'] === 'company';
-        } else {
-            $esEmpleador = false;
+        }
+        // Método 3: Verificar por el campo rol explícito
+        else if (isset($data['rol'])) {
+            $esEmpleador = $data['rol'] === 'empleador';
         }
         
-        // Debug para empresa
-        if ($esEmpleador) {
-            error_log("Registrando EMPLEADOR: " . json_encode($data));
-        } else {
-            error_log("Registrando EMPLEADO: " . json_encode($data));
-        }
+        // Debug
+        error_log("Es empleador: " . ($esEmpleador ? "SÍ" : "NO"));
+        error_log("Tipo de registro: " . ($esEmpleador ? "EMPRESA" : "EMPLEADO"));
         
         // Generar IDs únicos
         $userId = generateUUID();
@@ -77,17 +80,6 @@ function handleRegistro() {
             // Determinar el rol_id basado en el valor de $esEmpleador
             // Rol: 1 para empleador, 2 para empleado
             $rolId = $esEmpleador ? 1 : 2;
-            
-            // Si se proporciona un rol explícito, asegurarse de que sea consistente
-            if (isset($data['rol'])) {
-                if ($data['rol'] === 'empleador') {
-                    $rolId = 1;
-                    $esEmpleador = true;
-                } else if ($data['rol'] === 'empleado') {
-                    $rolId = 2;
-                    $esEmpleador = false;
-                }
-            }
             
             // Insertar usuario
             $stmt = $db->prepare('INSERT INTO users (id, email, password, rol_id, activo) VALUES (?, ?, ?, ?, 1)');
@@ -133,24 +125,25 @@ function handleRegistro() {
                 $mensaje = 'Empresa registrada correctamente';
             } else {
                 // Si es empleado, necesitamos la empresa asociada
-                if (!isset($data['companyNif']) && !isset($data['empresa_id'])) {
-                    throw new Exception("Se requiere NIF de empresa o ID de empresa para registrar empleado");
-                }
+                $empresaId = null;
                 
                 // Buscar la empresa por NIF si se proporciona
-                $empresaId = null;
                 if (isset($data['companyNif']) && !empty($data['companyNif'])) {
                     $stmt = $db->prepare('SELECT id FROM empresas WHERE nif = ?');
                     $stmt->execute([$data['companyNif']]);
                     $empresa = $stmt->fetch();
                     
                     if (!$empresa) {
-                        throw new Exception("No existe una empresa con el NIF proporcionado");
+                        throw new Exception("No existe una empresa con el NIF proporcionado: " . $data['companyNif']);
                     }
                     
                     $empresaId = $empresa['id'];
+                    error_log("Empresa encontrada por NIF: " . $empresaId);
                 } else if (isset($data['empresa_id'])) {
                     $empresaId = $data['empresa_id'];
+                    error_log("Usando empresa_id proporcionado: " . $empresaId);
+                } else {
+                    throw new Exception("Se requiere NIF de empresa o ID de empresa para registrar empleado");
                 }
                 
                 // Datos del empleado
@@ -165,8 +158,12 @@ function handleRegistro() {
                 $pais = $data['pais'] ?? $data['country'] ?? 'España';
                 
                 // Validar datos críticos
-                if (empty($nombre) || empty($apellidos)) {
-                    throw new Exception("El nombre y apellidos son obligatorios");
+                if (empty($nombre)) {
+                    throw new Exception("El nombre del empleado es obligatorio");
+                }
+                
+                if (empty($apellidos)) {
+                    throw new Exception("Los apellidos del empleado son obligatorios");
                 }
                 
                 if (empty($dni)) {

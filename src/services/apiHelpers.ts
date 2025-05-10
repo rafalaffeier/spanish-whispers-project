@@ -34,28 +34,33 @@ export const fetchWithAuth = async (
     console.log(`Response status for ${url}:`, response.status);
     console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
 
-    // Para respuestas que no son JSON (como errores de servidor)
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") === -1) {
-      const textError = await response.text();
-      console.error("Error en formato no-JSON:", textError);
-      throw new Error(`Error en formato no-JSON: ${textError}`);
-    }
-
-    // Verificar si la respuesta es exitosa
+    // Verificar si el servidor devolvió un error HTTP (status >= 400)
     if (!response.ok) {
+      let errorMessage = `Error ${response.status}: ${response.statusText}`;
+      
+      // Intentar leer el mensaje de error del cuerpo de la respuesta
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const errorData = await response.json();
+        console.error("API error response (JSON):", errorData);
+        errorMessage = errorData.error || errorMessage;
+      } else {
+        // Para errores no-JSON
+        const textError = await response.text();
+        console.error("API error response (text):", textError);
+        if (textError && textError.length > 0) {
+          errorMessage = textError;
+        }
+      }
+      
       // Si es 401 Unauthorized, limpiar autenticación solo si no estamos en login o registro
       if (response.status === 401 && !url.includes('/login') && !url.includes('/registro')) {
         // Importación dinámica para evitar dependencia circular
         const { clearAuth } = await import('./apiConfig');
         clearAuth();
       }
-
-      const errorData = await response.json().catch(() => ({}));
-      console.error("API error response:", errorData);
       
       // Formateamos mejor el mensaje de error para errores SQL
-      let errorMessage = errorData.error || `Error ${response.status}: ${response.statusText}`;
       if (errorMessage.includes('SQLSTATE')) {
         // Si es un error SQL, extraer solo el mensaje relevante
         if (errorMessage.includes('Unknown column')) {
@@ -75,8 +80,15 @@ export const fetchWithAuth = async (
       return null;
     }
 
+    // Verificar si hay contenido antes de intentar parsear JSON
+    const contentLength = response.headers.get('content-length');
+    if (contentLength === '0') {
+      return {};
+    }
+
     const responseData = await response.json().catch(e => {
       console.error("Error al parsear JSON:", e);
+      console.error("Response text:", response.text());
       return {}; 
     });
     console.log("API response data:", responseData);

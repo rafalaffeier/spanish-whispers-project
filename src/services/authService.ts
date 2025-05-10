@@ -21,7 +21,7 @@ export const login = async (email: string, password: string): Promise<{
     // Mapear respuesta a formato Employee
     const employee: Employee = {
       id: response.empleado.id,
-      userId: response.empleado.userId, // Añadido userId
+      userId: response.empleado.userId,
       name: response.empleado.nombre,
       role: response.empleado.rol,
       isCompany: response.empleado.esEmpresa || false
@@ -46,15 +46,12 @@ export const register = async (data: RegistrationData): Promise<void> => {
   // Preparar datos para la API según si es empresa o empleado
   const apiData: Record<string, any> = {
     email: data.email,
-    password: data.password,
-    // Siempre enviamos el tipo para mayor claridad
-    type: data.type
+    password: data.password
   };
 
   if (data.type === 'company') {
     // Datos específicos para una empresa (empleador)
     apiData.nombre = data.companyName;
-    apiData.apellidos = ""; // Campo requerido pero vacío para empresas
     apiData.nif = data.companyNif;
     apiData.provincia = data.province;
     apiData.direccion = data.companyAddress;
@@ -62,7 +59,8 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = true;
-    apiData.rol = 'empleador'; // Explícitamente indicamos el rol
+    apiData.rol = 'empleador';
+    apiData.type = 'company';
     
     console.log("Datos de registro de EMPRESA:", JSON.stringify(apiData, null, 2));
   } else {
@@ -72,12 +70,13 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.dni = data.dni;
     apiData.companyNif = data.companyNif;
     apiData.provincia = data.province;
-    apiData.direccion = data.address || data.companyAddress; // Usamos address si está disponible
+    apiData.direccion = data.address || data.companyAddress;
     apiData.codigo_postal = data.zipCode;
     apiData.pais = data.country;
     apiData.telefono = data.phone;
     apiData.es_empresa = false;
-    apiData.rol = 'empleado'; // Explícitamente indicamos el rol
+    apiData.rol = 'empleado';
+    apiData.type = 'employee';
     
     console.log("Datos de registro de EMPLEADO:", JSON.stringify(apiData, null, 2));
   }
