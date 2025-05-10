@@ -10,8 +10,8 @@ error_reporting(E_ALL);
 function getConnection() {
     $host = 'localhost';
     $dbname = 'apliumapp';
-    $username = 'aplicaciones';
-    $password = 'P#88wcJbyN';
+    $username = 'apliumapp777';
+    $password = 'f0qF06*p4';
     
     try {
         $db = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
