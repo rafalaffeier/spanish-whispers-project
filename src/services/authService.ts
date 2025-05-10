@@ -1,4 +1,3 @@
-
 // Servicios para autenticación y registro
 import { RegistrationData, PasswordResetRequest, PasswordResetConfirm, Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
@@ -11,25 +10,34 @@ export const login = async (email: string, password: string): Promise<{
   token: string
 }> => {
   try {
+    console.log("Login attempt for:", email);
+    
     const response = await fetchWithAuth('/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+
+    console.log("Login API response:", response);
 
     if (response && response.token) {
       setAuthToken(response.token);
       
       // Mapear respuesta a formato Employee
       const employee: Employee = {
-        id: response.empleado.id,
-        userId: response.empleado.userId,
-        name: response.empleado.nombre,
-        role: response.empleado.rol,
+        id: response.empleado.id || '',
+        userId: response.empleado.userId || '',
+        name: response.empleado.nombre || 'Usuario',
+        role: response.empleado.rol || 'empleado',
         isCompany: response.empleado.esEmpresa || false
       };
 
+      console.log("Parsed employee data:", employee);
+
       // Guardar el empleado en localStorage para recuperarlo al recargar
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
+      
+      // Guardar token en localStorage
+      localStorage.setItem('authToken', response.token);
 
       return {
         employee,
@@ -40,11 +48,18 @@ export const login = async (email: string, password: string): Promise<{
     throw new Error('Credenciales inválidas');
   } catch (error: any) {
     console.error('Error durante el login:', error);
-    throw error;
+    
+    // Mejorar detección y manejo de errores
+    if (error.message && typeof error.message === 'string') {
+      throw new Error(error.message);
+    } else if (error.statusText) {
+      throw new Error(`Error: ${error.statusText}`);
+    } else {
+      throw new Error('Error al iniciar sesión. Por favor intente nuevamente.');
+    }
   }
 };
 
-// Función para registrar usuarios (empleados o empresas)
 export const register = async (data: RegistrationData): Promise<any> => {
   console.log("%c [REGISTRO] Iniciando registro", "background: #3498db; color: white; padding: 2px 5px; border-radius: 2px;");
   console.log("[REGISTRO] Datos completos:", JSON.stringify(data, null, 2));

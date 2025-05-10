@@ -1,138 +1,79 @@
 
-// Funciones auxiliares para la API
-import { toast } from "sonner";
 import { API_BASE_URL, getAuthToken } from './apiConfig';
-import { isValidDate, toSafeDate } from '@/utils/dateUtils';
 
-// Función para mapear el estado de la API al formato de la aplicación
-export const mapStatusFromApi = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    'no_iniciada': 'not_started',
-    'activa': 'active',
-    'pausada': 'paused',
-    'finalizada': 'finished'
-  };
-  return statusMap[status] || status;
-};
-
-// Función para formatear una fecha para la API
-export const formatDateForApi = (date: Date): string => {
-  return date.toISOString();
-};
-
-// Función para normalizar NIFs/CIFs (eliminar espacios, guiones, etc.)
-export const normalizeNif = (nif: string): string => {
-  if (!nif) return '';
+export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
+  // Include debugging to track request issues
+  console.log(`[API Helper] Fetching ${endpoint}`);
   
-  // Eliminar espacios, guiones y puntos, y convertir a mayúsculas
-  return nif.trim().replace(/[\s\-\.]/g, '').toUpperCase();
-};
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
 
-// Función base para peticiones HTTP con mejor manejo de errores
-export const fetchWithAuth = async (
-  endpoint: string, 
-  options: RequestInit = {}
-): Promise<any> => {
+  if (token) {
+    console.log(`[API Helper] Using auth token: ${token.substring(0, 5)}...`);
+    headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.log('[API Helper] No auth token available');
+  }
+
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers
+  };
+
   try {
-    const fullUrl = `${API_BASE_URL}${endpoint}`;
-    console.log(`Fetching ${fullUrl}`);
-    console.log(`Request method: ${options.method || 'GET'}`);
+    console.log(`[API Helper] Sending request to: ${API_BASE_URL}${endpoint}`);
+    console.log('[API Helper] Request options:', JSON.stringify({
+      method: fetchOptions.method || 'GET',
+      headers: fetchOptions.headers,
+      bodySize: fetchOptions.body ? (fetchOptions.body as string).length : 0
+    }));
     
-    if (options.body) {
-      console.log(`Request body: ${options.body}`);
-    }
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
     
-    const token = getAuthToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos de timeout
-
-    const fetchOptions = {
-      ...options,
-      headers,
-      signal: options.signal || controller.signal
-    };
-
-    // Log completo de la solicitud
-    console.log("Enviando solicitud completa:", {
-      url: fullUrl,
-      options: JSON.stringify(fetchOptions, null, 2)
-    });
-
-    const response = await fetch(fullUrl, fetchOptions);
-    clearTimeout(timeoutId);
-
-    // Log del status de respuesta
-    console.log(`Response status: ${response.status} ${response.statusText}`);
-
-    // Verificar si la respuesta es un archivo
-    const contentType = response.headers.get('content-type');
-    console.log(`Content-Type de respuesta: ${contentType}`);
+    console.log(`[API Helper] Response status: ${response.status}`);
     
-    if (contentType && contentType.includes('application/octet-stream')) {
-      return response.blob();
-    }
-
-    // En caso de error 401 (no autorizado)
-    if (response.status === 401) {
-      console.error('Error de autenticación: No autorizado');
-      toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
-      throw new Error('No autorizado. Sesión expirada.');
-    }
-
-    // En caso de error 404 (no encontrado)
-    if (response.status === 404) {
-      console.error(`Error 404: Recurso no encontrado - ${endpoint}`);
-      throw new Error(`Recurso no encontrado: ${endpoint}`);
-    }
-
-    // Intentar parsear como JSON
+    // Try to get response as text first
+    const responseText = await response.text();
+    console.log(`[API Helper] Response text (first 100 chars): ${responseText.substring(0, 100)}`);
+    
+    // Only try to parse as JSON if we have content
     let data;
-    const text = await response.text();
-    
-    // Log del texto de respuesta
-    console.log("Response text:", text);
-    
-    // Verificar si el texto parece HTML (podría indicar un error de enrutamiento)
-    if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
-      console.error('La respuesta parece ser HTML en lugar de JSON:', text.substring(0, 200) + '...');
-      throw new Error('El servidor respondió con HTML en lugar de JSON. Posible problema de configuración de API.');
-    }
-    
-    try {
-      data = text ? JSON.parse(text) : {};
-      console.log("Response data parsed:", data);
-    } catch (e) {
-      console.error('Error al parsear respuesta como JSON:', e);
-      console.error('Texto de respuesta:', text);
-      throw new Error(`Error al procesar la respuesta del servidor: ${text.substring(0, 100)}...`);
+    if (responseText.trim().length > 0) {
+      try {
+        data = JSON.parse(responseText);
+        console.log('[API Helper] Parsed JSON response:', data);
+      } catch (e) {
+        console.error('[API Helper] Failed to parse response as JSON:', e);
+        console.log('[API Helper] Raw response:', responseText);
+        
+        // If the response is not JSON, return the text response
+        if (response.ok) {
+          return { message: "Operation successful", text: responseText };
+        } else {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+      }
+    } else {
+      console.log('[API Helper] Empty response body');
+      data = { message: "Operation completed" };
     }
 
-    // Si hay un error del lado del servidor
     if (!response.ok) {
-      console.error('Error de API:', data);
-      toast.error(data.error || `Error ${response.status}: ${response.statusText}`);
-      throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
+      console.error('[API Helper] Request failed:', data);
+      throw data.error || data || new Error(`Error: ${response.statusText}`);
     }
 
     return data;
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.error('Solicitud cancelada por timeout');
-      toast.error('La solicitud ha tardado demasiado tiempo. Inténtelo de nuevo.');
-      throw new Error('La solicitud ha tardado demasiado tiempo');
-    }
-    
-    console.error('Error en fetchWithAuth:', error);
-    toast.error(`Error: ${error.message || 'Error desconocido'}`);
+  } catch (error) {
+    console.error('[API Helper] Fetch error:', error);
     throw error;
   }
+};
+
+// Normaliza un NIF/CIF eliminando espacios y guiones y convirtiéndolo a mayúsculas
+export const normalizeNif = (nif: string): string => {
+  return nif.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 };

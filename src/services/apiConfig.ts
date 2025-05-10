@@ -1,54 +1,34 @@
 
-// Configuración básica de la API
+// API configuration for environment management
+const API_PRODUCTION_URL = 'https://aplium.com/apphora/api';
+const API_DEVELOPMENT_URL = '/api';
 
-// Detectar si estamos en modo desarrollo (en Lovable) o en producción
-const isDevelopment = window.location.hostname.includes('lovableproject.com');
-
-// URL base de la API (actualizada para manejar correctamente las rutas en desarrollo y producción)
-export const API_BASE_URL = isDevelopment 
-  ? `${window.location.origin}/apphora/api` // URL relativa que funcione correctamente en desarrollo
-  : 'https://aplium.com/apphora/api'; // URL absoluta con HTTPS para producción
-
-// Imprimir información de depuración sobre la URL base de la API
-console.log("[API CONFIG] Hostname:", window.location.hostname);
-console.log("[API CONFIG] Es desarrollo:", isDevelopment);
-console.log("[API CONFIG] API Base URL:", API_BASE_URL);
-console.log("[API CONFIG] URL completa actual:", window.location.href);
-console.log("[API CONFIG] Path:", window.location.pathname);
-console.log("[API CONFIG] Origin:", window.location.origin);
-console.log("[API CONFIG] Protocol:", window.location.protocol);
-
-// Token de autenticación
-let authToken: string | null = null;
-
-// Función para inicializar el token desde localStorage
-export const initializeAuth = () => {
-  const storedToken = localStorage.getItem('authToken');
-  if (storedToken) {
-    authToken = storedToken;
-    console.log("[API CONFIG] Token recuperado desde localStorage");
-  } else {
-    console.log("[API CONFIG] No se encontró token en localStorage");
-  }
+// Determinate if we're in development mode
+export const isDevelopment = () => {
+  return import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 };
 
-// Ejecutar al cargar
-initializeAuth();
+// Get the base URL for API requests
+export const API_BASE_URL = isDevelopment() ? API_DEVELOPMENT_URL : API_PRODUCTION_URL;
 
-// Función para configurar el token de autenticación
+// Auth token management
 export const setAuthToken = (token: string) => {
-  authToken = token;
   localStorage.setItem('authToken', token);
-  console.log("[API CONFIG] Token actualizado y guardado en localStorage");
+  console.log('[API Config] Auth token set');
 };
 
-// Función para limpiar la autenticación
-export const clearAuth = () => {
-  authToken = null;
+export const getAuthToken = (): string | null => {
+  const token = localStorage.getItem('authToken');
+  return token;
+};
+
+export const removeAuthToken = () => {
+  localStorage.removeItem('authToken');
+  console.log('[API Config] Auth token removed');
+};
+
+export const clearAuthData = () => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('currentEmployee');
-  console.log("[API CONFIG] Autenticación limpiada");
+  console.log('[API Config] All auth data cleared');
 };
-
-// Getter para el token de autenticación
-export const getAuthToken = () => authToken;

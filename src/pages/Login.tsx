@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,30 +38,48 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  // Check if user is already logged in
+  useEffect(() => {
+    const employee = localStorage.getItem('currentEmployee');
+    if (employee) {
+      try {
+        const employeeData = JSON.parse(employee);
+        console.log("Found saved employee data:", employeeData);
+        
+        // Redirect based on role
+        if (employeeData.isCompany || employeeData.role === 'empleador') {
+          navigate("/admin");
+        } else {
+          navigate("/employee");
+        }
+      } catch (e) {
+        console.error("Error parsing saved employee data:", e);
+        localStorage.removeItem('currentEmployee');
+      }
+    }
+  }, [navigate]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setLoginError(null);
     
     try {
-      const { employee } = await login(data.email, data.password);
+      const response = await login(data.email, data.password);
+      const { employee } = response;
+      
+      console.log("Login successful, employee data:", employee);
       
       toast({
         title: "Inicio de sesión exitoso",
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
       
-      // Redirigir según el rol del usuario (solo empleador o empleado)
+      // Redirigir según el rol del usuario
       if (employee.isCompany || employee.role === 'empleador') {
+        console.log("Redirecting to admin dashboard");
         navigate("/admin");
       } else {
+        console.log("Redirecting to employee dashboard");
         navigate("/employee");
       }
     } catch (error) {
