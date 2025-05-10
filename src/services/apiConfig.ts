@@ -6,7 +6,7 @@ const isDevelopment = window.location.hostname.includes('lovableproject.com');
 
 // URL base de la API (actualizada para manejar correctamente las rutas en desarrollo y producción)
 export const API_BASE_URL = isDevelopment 
-  ? 'https://aplium.com/apphora/api' // Forzar URL absoluta en desarrollo también
+  ? `${window.location.origin}/apphora/api` // URL relativa que funcione correctamente en desarrollo
   : 'https://aplium.com/apphora/api'; // URL absoluta con HTTPS para producción
 
 // Imprimir información de depuración sobre la URL base de la API

@@ -20,6 +20,14 @@ export const formatDateForApi = (date: Date): string => {
   return date.toISOString();
 };
 
+// Función para normalizar NIFs/CIFs (eliminar espacios, guiones, etc.)
+export const normalizeNif = (nif: string): string => {
+  if (!nif) return '';
+  
+  // Eliminar espacios, guiones y puntos, y convertir a mayúsculas
+  return nif.trim().replace(/[\s\-\.]/g, '').toUpperCase();
+};
+
 // Función base para peticiones HTTP con mejor manejo de errores
 export const fetchWithAuth = async (
   endpoint: string, 

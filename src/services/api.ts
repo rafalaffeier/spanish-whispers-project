@@ -3,6 +3,7 @@
 import { initializeAuth, setAuthToken, clearAuth } from './apiConfig';
 import { login, register, requestPasswordReset, confirmPasswordReset } from './authService';
 import { getEmployees, getEmployee, updateEmployee } from './employeeService';
+import { verifyCompanyByNif, getCompanies } from './companyService';
 import { 
   getTimesheets, 
   getTimesheetsByEmployee, 
@@ -35,6 +36,10 @@ export {
   getEmployees,
   getEmployee,
   updateEmployee,
+  
+  // Empresas
+  verifyCompanyByNif,
+  getCompanies,
   
   // Jornadas
   getTimesheets,

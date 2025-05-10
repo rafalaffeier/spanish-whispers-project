@@ -14,6 +14,7 @@ import { RegistrationData } from '@/types/timesheet';
 import { register as registerUser } from '@/services/authService';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/services/apiConfig';
+import { verifyCompanyByNif } from '@/services/companyService';
 
 // Esquema de validación del formulario - corregido para validación condicional
 const formSchema = z.object({
@@ -103,6 +104,8 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [companyNameFromNif, setCompanyNameFromNif] = useState<string>("");
+  const [companyVerified, setCompanyVerified] = useState(false);
+  const [isCheckingCompany, setIsCheckingCompany] = useState(false);
   const [debugMode, setDebugMode] = useState(true); // Activamos el modo debug por defecto para troubleshooting
   const [requestLogs, setRequestLogs] = useState<string[]>([]);
 
@@ -133,36 +136,54 @@ const Register = () => {
     name: 'companyNif'
   });
   
-  // Efecto para buscar la empresa por NIF
-  useEffect(() => {
-    if (companyNif && isEmployee && companyNif.length >= 9) {
-      // Aquí se haría la llamada al backend para buscar la empresa
-      // Por ahora simulamos una respuesta después de un breve retraso
-      const timer = setTimeout(() => {
-        if (companyNif === "B12345678") {
-          setCompanyNameFromNif("APLIUM APLICACIONES TELEMATICAS SL");
-          form.setValue('companyName', "APLIUM APLICACIONES TELEMATICAS SL");
-        } else if (companyNif === "A87654321") {
-          setCompanyNameFromNif("Empresa Ejemplo S.A.");
-          form.setValue('companyName', "Empresa Ejemplo S.A.");
-        } else {
-          setCompanyNameFromNif("");
-          form.setValue('companyName', "");
-        }
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    } else {
-      setCompanyNameFromNif("");
-    }
-  }, [companyNif, isEmployee, form]);
-
   // Función para añadir entradas al log de depuración
   const addToLog = (message: string) => {
     setRequestLogs(prev => [...prev, `${new Date().toISOString()}: ${message}`]);
     console.log(`[REGISTRO] ${message}`);
   };
-
+  
+  // Efecto para buscar la empresa por NIF
+  useEffect(() => {
+    const checkCompany = async () => {
+      if (companyNif && isEmployee && companyNif.length >= 8) {
+        try {
+          setIsCheckingCompany(true);
+          addToLog(`Verificando empresa con NIF: ${companyNif}`);
+          
+          // Añadir un retraso corto para evitar demasiadas solicitudes durante la escritura
+          const result = await verifyCompanyByNif(companyNif);
+          
+          if (result.exists && result.company) {
+            setCompanyNameFromNif(result.company.name);
+            form.setValue('companyName', result.company.name);
+            setCompanyVerified(true);
+            addToLog(`Empresa encontrada: ${result.company.name}`);
+          } else {
+            setCompanyNameFromNif("");
+            form.setValue('companyName', "");
+            setCompanyVerified(false);
+            addToLog(`No se encontró ninguna empresa con el NIF: ${companyNif}`);
+          }
+        } catch (error) {
+          console.error("Error al verificar empresa:", error);
+          addToLog(`Error al verificar empresa: ${error instanceof Error ? error.message : String(error)}`);
+          setCompanyNameFromNif("");
+          form.setValue('companyName', "");
+          setCompanyVerified(false);
+        } finally {
+          setIsCheckingCompany(false);
+        }
+      } else {
+        setCompanyNameFromNif("");
+        setCompanyVerified(false);
+      }
+    };
+    
+    // Usar un debounce para no hacer demasiadas solicitudes
+    const timer = setTimeout(checkCompany, 500);
+    return () => clearTimeout(timer);
+  }, [companyNif, isEmployee, form]);
+  
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     setApiError(null);
@@ -371,7 +392,7 @@ const Register = () => {
                           <Building className="h-5 w-5 text-gray-500" />
                         </div>
                         <Input 
-                          placeholder="Nombre de la empresa" 
+                          placeholder={isCheckingCompany ? "Verificando empresa..." : "Nombre de la empresa"} 
                           className="border-0 flex-1" 
                           value={isEmployee && companyNameFromNif ? companyNameFromNif : field.value} 
                           onChange={field.onChange}
@@ -379,9 +400,19 @@ const Register = () => {
                         />
                       </div>
                     </FormControl>
-                    {isEmployee && companyNif && companyNif.length >= 9 && !companyNameFromNif && (
+                    {isEmployee && companyNif && companyNif.length >= 8 && !companyNameFromNif && !isCheckingCompany && (
                       <div className="text-sm text-amber-600 mt-1">
                         No se encontró ninguna empresa con ese NIF/CIF
+                      </div>
+                    )}
+                    {isEmployee && isCheckingCompany && (
+                      <div className="text-sm text-blue-600 mt-1">
+                        Verificando empresa...
+                      </div>
+                    )}
+                    {isEmployee && companyVerified && companyNameFromNif && (
+                      <div className="text-sm text-green-600 mt-1">
+                        Empresa verificada correctamente
                       </div>
                     )}
                     <FormMessage />
