@@ -18,7 +18,6 @@ const AdminSidebar = () => {
     { title: 'Calendario', icon: Calendar, path: '/admin/calendar' },
     { title: 'Noticias', icon: Bell, path: '/admin/news' },
     { title: 'Editar perfil', icon: UserCog, path: '/admin/profile' },
-    { title: 'Calendario', icon: Calendar, path: '/admin/calendar-alt' },
     { title: 'Salir', icon: LogOut, path: '/login' },
   ];
 

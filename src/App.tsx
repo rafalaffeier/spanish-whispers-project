@@ -11,6 +11,10 @@ import PasswordReset from "./pages/PasswordReset";
 import PasswordResetConfirm from "./pages/PasswordResetConfirm"; 
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminActivity from "./pages/admin/AdminActivity";
+import AdminCalendar from "./pages/admin/AdminCalendar";
+import AdminNews from "./pages/admin/AdminNews";
+import AdminProfile from "./pages/admin/AdminProfile";
 import NotFound from "./pages/NotFound";
 
 // Estilo mejorado con tema personalizado
@@ -42,6 +46,10 @@ const App = () => (
               <Route path="/password-reset-confirm" element={<PasswordResetConfirm />} />
               <Route path="/employee" element={<EmployeeDashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/calendar" element={<AdminCalendar />} />
+              <Route path="/admin/news" element={<AdminNews />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
