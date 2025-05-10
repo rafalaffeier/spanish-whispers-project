@@ -1,4 +1,3 @@
-
 <?php
 // Funciones de autenticación y registro
 
@@ -84,9 +83,16 @@ function handleRegistro() {
     }
     
     $data = json_decode($requestBody, true);
+    if ($data === null) {
+        error_log("Error al decodificar JSON: " . json_last_error_msg());
+        http_response_code(400);
+        echo json_encode(['error' => 'JSON inválido: ' . json_last_error_msg()]);
+        exit;
+    }
     
     // Validar campos mínimos
     if (!isset($data['email']) || !isset($data['password'])) {
+        error_log("Faltan datos obligatorios: email o contraseña");
         http_response_code(400);
         echo json_encode(['error' => 'Faltan datos obligatorios: email o contraseña']);
         exit;
@@ -100,6 +106,7 @@ function handleRegistro() {
         $stmt->execute([$data['email']]);
         
         if ($stmt->fetch()) {
+            error_log("Email ya registrado: " . $data['email']);
             http_response_code(409);
             echo json_encode(['error' => 'El email ya está registrado']);
             exit;
@@ -138,54 +145,75 @@ function handleRegistro() {
         $telefono = $data['telefono'] ?? null;
         $direccion = $data['direccion'] ?? null;
         $provincia = $data['provincia'] ?? null;
-        $pais = $data['pais'] ?? null;
+        $pais = $data['pais'] ?? 'España';
         $codigoPostal = $data['codigo_postal'] ?? null;
+        
+        if ($esEmpresa && empty($nombre)) {
+            error_log("Falta nombre de empresa");
+            http_response_code(400);
+            echo json_encode(['error' => 'El nombre de la empresa es obligatorio']);
+            exit;
+        }
         
         // Iniciar transacción para asegurar consistencia
         $db->beginTransaction();
         
-        // Insertar empleado
-        $stmt = $db->prepare('INSERT INTO empleados 
-                              (id, nombre, apellidos, email, password, dni, rol_id, 
-                               telefono, direccion, ciudad, pais, codigo_postal, activo) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
-                              
-        $stmt->execute([
-            $id,
-            $nombre,
-            $apellidos,
-            $data['email'],
-            $password,
-            $dni,
-            $rolId,
-            $telefono,
-            $direccion,
-            $provincia,
-            $pais,
-            $codigoPostal
-        ]);
-        
-        // Confirmar transacción
-        $db->commit();
-        
-        // Registrar acción exitosa
-        logAction($id, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
-        
-        // Responder con éxito
-        response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente', 'id' => $id]);
-    } catch (PDOException $e) {
-        // Revertir transacción en caso de error
-        if ($db && $db->inTransaction()) {
+        try {
+            // Consulta SQL para debug
+            $sqlDebug = "INSERT INTO empleados 
+                          (id, nombre, apellidos, email, password, dni, rol_id, 
+                           telefono, direccion, ciudad, pais, codigo_postal, activo) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+            error_log("SQL a ejecutar: " . $sqlDebug);
+            error_log("Parámetros: " . json_encode([$id, $nombre, $apellidos, $data['email'], 
+                                                  'password_hash', $dni, $rolId, $telefono, 
+                                                  $direccion, $provincia, $pais, $codigoPostal]));
+            
+            // Insertar empleado
+            $stmt = $db->prepare($sqlDebug);
+            $stmt->execute([
+                $id,
+                $nombre,
+                $apellidos,
+                $data['email'],
+                $password,
+                $dni,
+                $rolId,
+                $telefono,
+                $direccion,
+                $provincia,
+                $pais,
+                $codigoPostal
+            ]);
+            
+            // Confirmar transacción
+            $db->commit();
+            
+            // Registrar acción exitosa
+            logAction($id, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
+            
+            // Responder con éxito
+            response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente', 'id' => $id]);
+        } catch (PDOException $e) {
+            // Revertir transacción en caso de error
             $db->rollBack();
+            throw $e; // Re-lanzar para capturar en el bloque principal
+        }
+    } catch (PDOException $e) {
+        error_log("Error SQL en registro: " . $e->getMessage() . " - Código: " . $e->getCode());
+        
+        // Determinar mensaje de error
+        $errorMsg = 'Error al registrar en la base de datos';
+        if ($e->getCode() == '23000') {
+            $errorMsg = 'Ya existe un registro con esa información';
         }
         
-        error_log("Error SQL en registro: " . $e->getMessage());
         http_response_code(500);
-        echo json_encode(['error' => 'Error al registrar: ' . $e->getMessage()]);
+        echo json_encode(['error' => $errorMsg, 'details' => $e->getMessage()]);
         exit;
     } catch (Exception $e) {
         // Capturar cualquier otra excepción
-        error_log("Error general en registro: " . $e->getMessage());
+        error_log("Error general en registro: " . $e->getMessage() . " - Código: " . $e->getCode());
         http_response_code(500);
         echo json_encode(['error' => 'Error general al registrar: ' . $e->getMessage()]);
         exit;
@@ -292,4 +320,23 @@ function handleResetPassword() {
         echo json_encode(['error' => 'Error al restablecer la contraseña']);
         exit;
     }
+}
+
+// Utility function to generate UUID
+function generateUUID() {
+    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        // 32 bits for "time_low"
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        // 16 bits for "time_mid"
+        mt_rand(0, 0xffff),
+        // 16 bits for "time_hi_and_version",
+        // four most significant bits holds version number 4
+        mt_rand(0, 0x0fff) | 0x4000,
+        // 16 bits, 8 bits for "clk_seq_hi_res",
+        // 8 bits for "clk_seq_low",
+        // two most significant bits holds zero and one for variant DCE1.1
+        mt_rand(0, 0x3fff) | 0x8000,
+        // 48 bits for "node"
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
 }

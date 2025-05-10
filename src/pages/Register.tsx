@@ -33,6 +33,24 @@ const formSchema = z.object({
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
+}).refine(data => {
+  // Validación condicional para empleado
+  if (data.type === 'employee') {
+    return !!data.firstName && !!data.lastName && !!data.dni;
+  }
+  return true;
+}, {
+  message: "Todos los campos del empleado son requeridos",
+  path: ["firstName"],
+}).refine(data => {
+  // Validación condicional para empresa
+  if (data.type === 'company') {
+    return !!data.companyName && !!data.companyNif;
+  }
+  return true;
+}, {
+  message: "Todos los campos de la empresa son requeridos",
+  path: ["companyName"],
 });
 
 const Register = () => {
@@ -99,36 +117,53 @@ const Register = () => {
     try {
       console.log("Enviando datos de registro:", values);
       
-      // Verificar campos requeridos según el tipo de usuario
-      if (values.type === 'employee' && (!values.firstName || !values.lastName || !values.dni)) {
-        throw new Error('Faltan datos obligatorios para el empleado');
+      // Verificaciones adicionales para campos requeridos
+      if (values.type === 'company') {
+        if (!values.companyName || !values.companyNif) {
+          throw new Error('El nombre y NIF/CIF de la empresa son obligatorios');
+        }
+      } else if (values.type === 'employee') {
+        if (!values.firstName || !values.lastName || !values.dni) {
+          throw new Error('Nombre, apellidos y DNI/NIE del empleado son obligatorios');
+        }
       }
 
-      if (values.type === 'company' && (!values.companyName || !values.companyNif)) {
-        throw new Error('Faltan datos obligatorios para la empresa');
+      if (!values.email || !values.password || !values.confirmPassword) {
+        throw new Error('Email y contraseña son obligatorios');
       }
 
-      // Añadir más validaciones específicas aquí si es necesario
+      if (values.password !== values.confirmPassword) {
+        throw new Error('Las contraseñas no coinciden');
+      }
       
       // Enviar datos al backend con un timeout para evitar bloqueos indefinidos
       toast.info('Enviando datos de registro...');
       
-      await registerUser(values as RegistrationData);
-      
-      toast.success('Registro completado! Redirigiendo al login...');
-      
-      // Redireccionar al login después de un breve retraso para que el usuario vea el toast
-      setTimeout(() => navigate('/login'), 2000);
+      try {
+        await registerUser(values as RegistrationData);
+        toast.success('Registro completado! Redirigiendo al login...');
+        
+        // Redireccionar al login después de un breve retraso para que el usuario vea el toast
+        setTimeout(() => navigate('/login'), 2000);
+      } catch (error) {
+        console.error('Error durante el registro:', error);
+        
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Error al registrarse. Por favor, intenta nuevamente.';
+        
+        setApiError(errorMessage);
+        toast.error(`Error al registrarse: ${errorMessage}`);
+      }
     } catch (error) {
-      console.error('Error durante el registro:', error);
+      console.error('Error durante la validación:', error);
       
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Error al registrarse. Por favor, intenta nuevamente.';
+        : 'Error al validar los datos. Por favor, revisa el formulario.';
       
       setApiError(errorMessage);
-      
-      toast.error(`Error al registrarse: ${errorMessage}`);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

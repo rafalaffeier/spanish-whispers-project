@@ -3,6 +3,7 @@
 import { RegistrationData, PasswordResetRequest, PasswordResetConfirm, Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
 import { setAuthToken } from './apiConfig';
+import { toast } from "sonner";
 
 // Función para iniciar sesión
 export const login = async (email: string, password: string): Promise<{
@@ -39,7 +40,7 @@ export const login = async (email: string, password: string): Promise<{
 
 // Función para registrar usuarios (empleados o empresas)
 export const register = async (data: RegistrationData): Promise<void> => {
-  console.log("Enviando datos de registro:", data);
+  console.log("Enviando datos de registro:", JSON.stringify(data, null, 2));
   
   // Preparar datos para la API según si es empresa o empleado
   const apiData: Record<string, any> = {
@@ -60,6 +61,8 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.es_empresa = true;
     apiData.rol_id = 5; // ID del rol 'empresa'
     apiData.type = 'company'; // Aseguramos que se envía el tipo correcto
+    
+    console.log("Datos de registro de EMPRESA:", JSON.stringify(apiData, null, 2));
   } else {
     // Datos específicos para un empleado
     apiData.nombre = data.firstName;
@@ -74,26 +77,44 @@ export const register = async (data: RegistrationData): Promise<void> => {
     apiData.es_empresa = false;
     apiData.rol_id = 2; // ID del rol 'empleado'
     apiData.type = 'employee'; // Aseguramos que se envía el tipo correcto
+    
+    console.log("Datos de registro de EMPLEADO:", JSON.stringify(apiData, null, 2));
   }
 
-  console.log("Datos formateados para API:", apiData);
-
   try {
-    // Enviar solicitud con un timeout de 10 segundos para evitar esperas indefinidas
-    const response = await Promise.race([
-      fetchWithAuth('/registro', {
-        method: 'POST',
-        body: JSON.stringify(apiData),
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La solicitud tardó demasiado tiempo')), 10000)
-      )
-    ]);
+    // Mostrar toast para indicar que se está procesando
+    toast.info("Procesando registro...");
+    
+    console.log("Enviando solicitud a /registro con datos:", JSON.stringify(apiData, null, 2));
+    
+    // Enviar solicitud con un timeout de 15 segundos para evitar esperas indefinidas
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    const response = await fetchWithAuth('/registro', {
+      method: 'POST',
+      body: JSON.stringify(apiData),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     console.log("Respuesta del registro:", response);
+    
+    if (response && response.message) {
+      toast.success(response.message);
+    } else {
+      toast.success("Registro completado exitosamente");
+    }
+    
     return response;
   } catch (error) {
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Error desconocido durante el registro';
+    
     console.error("Error durante el registro:", error);
+    toast.error(`Error en el registro: ${errorMessage}`);
     throw error;
   }
 };

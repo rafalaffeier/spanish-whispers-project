@@ -1,6 +1,6 @@
 
 // Funciones auxiliares para la API
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { API_BASE_URL, getAuthToken } from './apiConfig';
 
 // Función base para peticiones HTTP con mejor manejo de errores
@@ -75,7 +75,10 @@ export const fetchWithAuth = async (
       return null;
     }
 
-    const responseData = await response.json();
+    const responseData = await response.json().catch(e => {
+      console.error("Error al parsear JSON:", e);
+      return {}; 
+    });
     console.log("API response data:", responseData);
     return responseData;
   } catch (error) {
@@ -84,17 +87,19 @@ export const fetchWithAuth = async (
     // Manejar errores de conexión específicamente
     const message = error instanceof Error ? error.message : String(error);
     
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      console.error("La solicitud fue abortada por tiempo de espera");
+      toast.error("La solicitud tomó demasiado tiempo. Por favor intente nuevamente.");
+      throw new Error("Tiempo de espera agotado. Por favor intente nuevamente.");
+    }
+    
     // Mostrar mensajes más amigables para errores comunes
     let userMessage = message;
     if (message.includes('Failed to fetch') || message.includes('Network Error')) {
       userMessage = 'No se pudo conectar al servidor. Verifique su conexión a Internet o contacte al administrador.';
     }
     
-    toast({
-      title: "Error de API",
-      description: userMessage,
-      variant: "destructive",
-    });
+    toast.error(`Error: ${userMessage}`);
     throw error;
   }
 };
