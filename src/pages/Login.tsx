@@ -60,7 +60,7 @@ const Login = () => {
       });
       
       // Redirigir según el rol del usuario
-      if (employee.isCompany || employee.role === 'administrador' || employee.role === 'empresa' || employee.role === 'admin') {
+      if (employee.isCompany || employee.role === 'empleador' || employee.role === 'empresa' || employee.role === 'admin') {
         navigate("/admin");
       } else {
         navigate("/employee");
