@@ -77,3 +77,19 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
 export const normalizeNif = (nif: string): string => {
   return nif.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 };
+
+// Mapear estado de API a formato de aplicación
+export const mapStatusFromApi = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'no_iniciada': 'not_started',
+    'activa': 'active',
+    'pausada': 'paused',
+    'finalizada': 'finished'
+  };
+  return statusMap[status] || status;
+};
+
+// Formatear fecha para API
+export const formatDateForApi = (date: Date): string => {
+  return date.toISOString().replace('T', ' ').substring(0, 19);
+};
