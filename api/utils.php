@@ -1,4 +1,3 @@
-
 <?php
 // Funciones de utilidad para la API
 
@@ -16,4 +15,3 @@ function generateUUID() {
 // Nota: La función response() ha sido eliminada porque ya está definida en config.php
 
 // Otras funciones de utilidad que puedan necesitarse
-

@@ -79,12 +79,12 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const employeeTimesheets = await api.getTimesheetsByEmployee(employeeId);
       setTimesheets(employeeTimesheets);
       
-      // También podríamos cargar otros empleados si el usuario actual es admin
-      if (currentEmployee?.role === 'admin' || currentEmployee?.role === 'Supervisor') {
+      // También podríamos cargar otros empleados si el usuario actual es empleador
+      if (currentEmployee?.role === 'empleador') {
         const allEmployees = await api.getEmployees();
         setEmployees(allEmployees);
       } else {
-        // Si no es admin, solo mostrar el empleado actual
+        // Si no es empleador, solo mostrar el empleado actual
         if (currentEmployee) {
           setEmployees([currentEmployee]);
         }
