@@ -73,7 +73,9 @@ function handleLogin() {
         }
         
         $db = getConnection();
-        $stmt = $db->prepare('SELECT id, nombre, password, rol_id, department_id FROM empleados WHERE email = ? AND activo = 1');
+        
+        // Modificada la consulta para evitar el error de department_id
+        $stmt = $db->prepare('SELECT id, nombre, password, rol_id FROM empleados WHERE email = ? AND activo = 1');
         $stmt->execute([$data['email']]);
         $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -111,6 +113,7 @@ function handleLogin() {
             ]
         ]);
     } catch (PDOException $e) {
+        error_log('Error en login: ' . $e->getMessage());
         response(['error' => 'Error al iniciar sesión: ' . $e->getMessage()], 500);
     }
 }

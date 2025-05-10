@@ -1,3 +1,4 @@
+
 // Servicio de API para conectar con el backend MySQL
 import { toast } from "@/hooks/use-toast";
 import { Employee, TimesheetEntry, PauseRecord, RegistrationData, PasswordResetRequest, PasswordResetConfirm } from '@/types/timesheet';
@@ -64,6 +65,7 @@ const fetchWithAuth = async (
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") === -1) {
       const textError = await response.text();
+      console.error("Error en formato no-JSON:", textError);
       throw new Error(`Error en formato no-JSON: ${textError}`);
     }
 
@@ -76,7 +78,21 @@ const fetchWithAuth = async (
 
       const errorData = await response.json().catch(() => ({}));
       console.error("API error response:", errorData);
-      throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      
+      // Formateamos mejor el mensaje de error para errores SQL
+      let errorMessage = errorData.error || `Error ${response.status}: ${response.statusText}`;
+      if (errorMessage.includes('SQLSTATE')) {
+        // Si es un error SQL, extraer solo el mensaje relevante
+        if (errorMessage.includes('Unknown column')) {
+          errorMessage = "Error de base de datos: Columna no encontrada. Por favor, contacta al administrador.";
+        } else if (errorMessage.includes('Access denied')) {
+          errorMessage = "Error de acceso a la base de datos. Por favor, contacta al administrador.";
+        } else {
+          errorMessage = "Error de base de datos. Por favor, contacta al administrador.";
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Para respuestas vacías (como en DELETE)
@@ -95,8 +111,6 @@ const fetchWithAuth = async (
     let userMessage = message;
     if (message.includes('Failed to fetch') || message.includes('Network Error')) {
       userMessage = 'No se pudo conectar al servidor. Verifique su conexión a Internet o contacte al administrador.';
-    } else if (message.includes('Access denied')) {
-      userMessage = 'Error de acceso a la base de datos. Por favor, contacte al administrador del sistema.';
     }
     
     toast({
