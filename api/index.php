@@ -10,11 +10,27 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $segments = explode('/', trim($path, '/'));
 $apiEndpoint = $segments[count($segments) - 1] ?? '';
 
+// Obtener parámetros de consulta para casos especiales
+$query = $_SERVER['QUERY_STRING'] ?? '';
+parse_str($query, $queryParams);
+
 // Rutas públicas (no requieren autenticación)
 $publicRoutes = ['login', 'registro', 'health', 'recuperar-password', 'reset-password'];
 
 // Verificar si es una ruta pública o si necesita autenticación
-if (!in_array($apiEndpoint, $publicRoutes) && $apiEndpoint != '') {
+// Casos especiales: permitir consultas de verificación de empresas sin auth
+$isCompanyVerification = false;
+if ($apiEndpoint === 'empresas' && isset($queryParams['nif'])) {
+    $isCompanyVerification = true;
+    error_log("Solicitud de verificación de empresa por NIF: " . $queryParams['nif']);
+}
+
+if ($apiEndpoint === 'verify' && $segments[count($segments) - 2] === 'empresas') {
+    $isCompanyVerification = true;
+    error_log("Solicitud de verificación de empresa en endpoint verify");
+}
+
+if (!in_array($apiEndpoint, $publicRoutes) && $apiEndpoint != '' && !$isCompanyVerification) {
     // Para depuración
     error_log("Ruta requiere autenticación: " . $apiEndpoint);
     
@@ -26,7 +42,7 @@ if (!in_array($apiEndpoint, $publicRoutes) && $apiEndpoint != '') {
     }
 } else {
     // Para depuración
-    error_log("Ruta pública: " . $apiEndpoint);
+    error_log("Ruta pública: " . $apiEndpoint . ($isCompanyVerification ? " (verificación de empresa)" : ""));
 }
 
 // Enrutamiento básico

@@ -19,6 +19,8 @@ export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean,
     // Hacemos una búsqueda directa primero (más sencilla y confiable)
     try {
       console.log(`[COMPANY SERVICE] Intentando búsqueda directa de empresa con NIF: ${normalizedNif}`);
+      
+      // Usar fetch directo en lugar de fetchWithAuth para evitar problemas de autenticación
       const response = await fetch(`${API_BASE_URL}/empresas?nif=${encodeURIComponent(normalizedNif)}`);
       
       if (!response.ok) {
@@ -54,6 +56,8 @@ export const verifyCompanyByNif = async (nif: string): Promise<{exists: boolean,
     // Si la búsqueda directa falló, intentar con el endpoint verify (método secundario)
     try {
       console.log(`[COMPANY SERVICE] Intentando verificar empresa con endpoint verify: ${normalizedNif}`);
+      
+      // Usar fetch directo en lugar de fetchWithAuth para evitar problemas de autenticación
       const verifyResponse = await fetch(`${API_BASE_URL}/empresas/verify?nif=${encodeURIComponent(normalizedNif)}`);
       
       if (!verifyResponse.ok) {
