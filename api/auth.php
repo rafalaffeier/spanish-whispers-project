@@ -74,7 +74,8 @@ function handleLogin() {
 // Función para manejar el registro
 function handleRegistro() {
     // Debug para ver los datos entrantes
-    error_log("Inicio de registro: " . file_get_contents('php://input'));
+    $requestBody = file_get_contents('php://input');
+    error_log("Inicio de registro con datos: " . $requestBody);
     
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);
@@ -82,12 +83,12 @@ function handleRegistro() {
         exit;
     }
     
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = json_decode($requestBody, true);
     
     // Validar campos mínimos
     if (!isset($data['email']) || !isset($data['password'])) {
         http_response_code(400);
-        echo json_encode(['error' => 'Faltan datos obligatorios']);
+        echo json_encode(['error' => 'Faltan datos obligatorios: email o contraseña']);
         exit;
     }
     
@@ -140,6 +141,9 @@ function handleRegistro() {
         $pais = $data['pais'] ?? null;
         $codigoPostal = $data['codigo_postal'] ?? null;
         
+        // Iniciar transacción para asegurar consistencia
+        $db->beginTransaction();
+        
         // Insertar empleado
         $stmt = $db->prepare('INSERT INTO empleados 
                               (id, nombre, apellidos, email, password, dni, rol_id, 
@@ -161,13 +165,29 @@ function handleRegistro() {
             $codigoPostal
         ]);
         
-        logAction($id, 'registro', $esEmpresa ? 'Registro de empresa' : 'Registro de empleado');
+        // Confirmar transacción
+        $db->commit();
         
-        response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente']);
+        // Registrar acción exitosa
+        logAction($id, 'registro', $esEmpresa ? 'Registro de empresa exitoso' : 'Registro de empleado exitoso');
+        
+        // Responder con éxito
+        response(['message' => $esEmpresa ? 'Empresa registrada correctamente' : 'Empleado registrado correctamente', 'id' => $id]);
     } catch (PDOException $e) {
-        error_log("Error en registro: " . $e->getMessage());
+        // Revertir transacción en caso de error
+        if ($db && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        
+        error_log("Error SQL en registro: " . $e->getMessage());
         http_response_code(500);
         echo json_encode(['error' => 'Error al registrar: ' . $e->getMessage()]);
+        exit;
+    } catch (Exception $e) {
+        // Capturar cualquier otra excepción
+        error_log("Error general en registro: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Error general al registrar: ' . $e->getMessage()]);
         exit;
     }
 }

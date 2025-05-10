@@ -79,11 +79,16 @@ export const register = async (data: RegistrationData): Promise<void> => {
   console.log("Datos formateados para API:", apiData);
 
   try {
-    // Importante: NO añadir token para registro
-    const response = await fetchWithAuth('/registro', {
-      method: 'POST',
-      body: JSON.stringify(apiData),
-    });
+    // Enviar solicitud con un timeout de 10 segundos para evitar esperas indefinidas
+    const response = await Promise.race([
+      fetchWithAuth('/registro', {
+        method: 'POST',
+        body: JSON.stringify(apiData),
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: La solicitud tardó demasiado tiempo')), 10000)
+      )
+    ]);
     
     console.log("Respuesta del registro:", response);
     return response;

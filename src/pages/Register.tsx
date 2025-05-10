@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { ChevronDown, Mail, Lock, User, Building, MapPin, Phone } from 'lucide-react';
 import { RegistrationData } from '@/types/timesheet';
-import { register as registerUser } from '@/services/api';
+import { register as registerUser } from '@/services/authService';
 
 // Esquema de validación del formulario
 const formSchema = z.object({
@@ -99,7 +99,20 @@ const Register = () => {
     try {
       console.log("Enviando datos de registro:", values);
       
-      // Enviar datos al backend
+      // Verificar campos requeridos según el tipo de usuario
+      if (values.type === 'employee' && (!values.firstName || !values.lastName || !values.dni)) {
+        throw new Error('Faltan datos obligatorios para el empleado');
+      }
+
+      if (values.type === 'company' && (!values.companyName || !values.companyNif)) {
+        throw new Error('Faltan datos obligatorios para la empresa');
+      }
+
+      // Añadir más validaciones específicas aquí si es necesario
+      
+      // Enviar datos al backend con un timeout para evitar bloqueos indefinidos
+      toast.info('Enviando datos de registro...');
+      
       await registerUser(values as RegistrationData);
       
       toast.success('Registro completado! Redirigiendo al login...');
@@ -109,13 +122,13 @@ const Register = () => {
     } catch (error) {
       console.error('Error durante el registro:', error);
       
-      setApiError(
-        error instanceof Error 
-          ? error.message 
-          : 'Error al registrarse. Por favor, intenta nuevamente.'
-      );
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Error al registrarse. Por favor, intenta nuevamente.';
       
-      toast.error('Error al registrarse. Por favor, intenta nuevamente.');
+      setApiError(errorMessage);
+      
+      toast.error(`Error al registrarse: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
