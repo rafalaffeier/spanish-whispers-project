@@ -1,5 +1,5 @@
 
-import { useLocation, Link, Navigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -12,11 +12,6 @@ const NotFound = () => {
       location.pathname
     );
   }, [location.pathname]);
-
-  // Para la vista previa, redirigir automáticamente a login
-  if (location.pathname === "/") {
-    return <Navigate to="/login" replace />;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

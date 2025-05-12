@@ -27,14 +27,16 @@ const queryClient = new QueryClient({
   }
 });
 
-// Determinar si estamos en desarrollo o producción
+// Determinar si estamos en producción o desarrollo
 const isDevelopment = () => {
-  return import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  return import.meta.env.DEV || 
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.includes('lovable');
 };
 
 // Definir base path para la aplicación - solo en producción
-// En vista previa de lovable, asumimos que estamos en desarrollo
-const BASE_PATH = ''; // Quitamos el path base para la vista previa
+const BASE_PATH = isDevelopment() ? '' : '/apphora';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,7 +48,7 @@ const App = () => (
           <BrowserRouter basename={BASE_PATH}>
             <Routes>
               {/* Ruta raíz redirecciona a login */}
-              <Route path="/" element={<Login />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} /> 
               <Route path="/password-reset" element={<PasswordReset />} />

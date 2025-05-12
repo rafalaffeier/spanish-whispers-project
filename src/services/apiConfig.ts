@@ -14,11 +14,16 @@ export const API_BASE_URL = isDevelopment() ? API_DEVELOPMENT_URL : API_PRODUCTI
 // Auth token management
 export const setAuthToken = (token: string) => {
   localStorage.setItem('authToken', token);
-  console.log('[API Config] Auth token set');
+  console.log('[API Config] Auth token set:', token.substring(0, 5) + '...');
 };
 
 export const getAuthToken = (): string | null => {
   const token = localStorage.getItem('authToken');
+  if (token) {
+    console.log('[API Config] Retrieved auth token:', token.substring(0, 5) + '...');
+  } else {
+    console.log('[API Config] No auth token found in localStorage');
+  }
   return token;
 };
 
@@ -50,6 +55,21 @@ export const initializeAuth = () => {
     if (!employee) {
       console.log('[API Config] Token exists but no employee data, clearing auth');
       clearAuth();
+    } else {
+      try {
+        // Verificar que el formato de employee sea válido
+        const employeeData = JSON.parse(employee);
+        console.log('[API Config] Found employee data:', employeeData);
+        
+        // Comprobar que tenga los campos requeridos
+        if (!employeeData.id || !employeeData.name || !employeeData.role) {
+          console.log('[API Config] Invalid employee data format, clearing auth');
+          clearAuth();
+        }
+      } catch (e) {
+        console.error('[API Config] Error parsing employee data, clearing auth');
+        clearAuth();
+      }
     }
   } else {
     // Si no hay token, asegurarse de que no haya datos de empleado
