@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Employee } from '@/types/timesheet';
+import { updateEmployee } from '@/services/api';
+import { toast } from '@/hooks/use-toast';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -18,9 +20,10 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
   open, 
   onOpenChange 
 }) => {
-  const { currentEmployee, setCurrentEmployee } = useTimesheet();
+  const { currentEmployee, setCurrentEmployee, refreshData } = useTimesheet();
   const [formData, setFormData] = useState<Partial<Employee>>(currentEmployee || {});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!currentEmployee) return null;
 
@@ -39,15 +42,63 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
     }
   };
 
-  const handleSubmit = () => {
-    // En un caso real, aquí enviarías los datos al servidor
-    // Por ahora, simplemente actualizamos el contexto local
-    if (currentEmployee) {
-      setCurrentEmployee({
-        ...currentEmployee,
-        ...formData
+  const handleSubmit = async () => {
+    if (!currentEmployee || !currentEmployee.id) {
+      toast({
+        title: "Error",
+        description: "No se puede identificar al empleado actual",
+        variant: "destructive"
       });
+      return;
     }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Procesamos el nombre completo
+      const fullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim();
+      const dataToUpdate = {
+        ...formData,
+        name: fullName
+      };
+      
+      console.log("Actualizando datos de empleado:", currentEmployee.id, dataToUpdate);
+      
+      // Llamar a la API para actualizar los datos
+      await updateEmployee(currentEmployee.id, dataToUpdate);
+      
+      // Actualizar el empleado en el contexto
+      const updatedEmployee = {
+        ...currentEmployee,
+        ...formData,
+        name: fullName
+      };
+      
+      setCurrentEmployee(updatedEmployee);
+      
+      // Refrescar datos del servidor
+      await refreshData();
+      
+      toast({
+        title: "Éxito",
+        description: "Datos actualizados correctamente",
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error al actualizar perfil:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentEmployee(null);
     onOpenChange(false);
   };
 
@@ -97,7 +148,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Email" 
                 name="email"
-                value={formData.email || 'rafael@aplium.com'}
+                value={formData.email || currentEmployee.email || ''}
                 onChange={handleChange}
               />
             </div>
@@ -105,7 +156,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="DNI" 
                 name="dni"
-                value={formData.dni || 'Y8619064N'}
+                value={formData.dni || currentEmployee.dni || ''}
                 onChange={handleChange}
               />
             </div>
@@ -113,7 +164,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
             <div>
               <Select 
                 onValueChange={(value) => handleSelectChange('department', value)} 
-                defaultValue={formData.department || 'APLIUM Aplicaciones Tele'}
+                defaultValue={formData.department || currentEmployee.department || 'APLIUM Aplicaciones Tele'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Departamento" />
@@ -129,7 +180,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Puesto" 
                 name="position"
-                value={formData.position || 'IT'}
+                value={formData.position || currentEmployee.position || ''}
                 onChange={handleChange}
               />
             </div>
@@ -138,14 +189,14 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="División" 
                 name="division"
-                value={formData.division || 'Redes'}
+                value={formData.division || currentEmployee.division || ''}
                 onChange={handleChange}
               />
             </div>
             <div>
               <Select 
                 onValueChange={(value) => handleSelectChange('country', value)} 
-                defaultValue={formData.country || 'España'}
+                defaultValue={formData.country || currentEmployee.country || 'España'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="País" />
@@ -162,7 +213,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Ciudad" 
                 name="city"
-                value={formData.city || 'Lleida'}
+                value={formData.city || currentEmployee.city || ''}
                 onChange={handleChange}
               />
             </div>
@@ -170,7 +221,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Dirección" 
                 name="address"
-                value={formData.address || 'Av. Quatretonda, 30'}
+                value={formData.address || currentEmployee.address || ''}
                 onChange={handleChange}
               />
             </div>
@@ -179,7 +230,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Código Postal" 
                 name="zipCode"
-                value={formData.zipCode || '25132'}
+                value={formData.zipCode || currentEmployee.zipCode || ''}
                 onChange={handleChange}
               />
             </div>
@@ -187,7 +238,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
               <Input 
                 placeholder="Teléfono" 
                 name="phone"
-                value={formData.phone || '973 18 43 43'}
+                value={formData.phone || currentEmployee.phone || ''}
                 onChange={handleChange}
               />
             </div>
@@ -215,12 +266,16 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({
         <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
           <Button 
             className="bg-gray-200 hover:bg-gray-300 text-gray-800" 
-            onClick={() => onOpenChange(false)}
+            onClick={handleLogout}
           >
             Cerrar sesión
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>
-            Modificar datos
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700" 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Guardando...' : 'Modificar datos'}
           </Button>
         </div>
       </DialogContent>
