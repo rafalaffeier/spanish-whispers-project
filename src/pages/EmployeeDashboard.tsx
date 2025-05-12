@@ -12,26 +12,40 @@ import { Button } from '@/components/ui/button';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
-  const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet } = useTimesheet();
+  const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet, loading } = useTimesheet();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   
   // Verificar autenticación al cargar
   useEffect(() => {
-    if (!currentEmployee) {
-      console.log("No hay empleado activo, redirigiendo a login");
-      navigate("/login");
-    } else {
-      console.log("Empleado activo:", currentEmployee.name);
-    }
-  }, [currentEmployee, navigate]);
+    const checkAuthentication = async () => {
+      // Si el context ya terminó de cargar y no hay empleado, redirigir
+      if (!loading && !currentEmployee) {
+        console.log("No hay empleado activo y ya terminó de cargar, redirigiendo a login");
+        navigate("/login", { replace: true });
+      }
+    };
+    
+    checkAuthentication();
+  }, [currentEmployee, navigate, loading]);
 
-  // Si no hay empleado activo, no renderizar nada mientras se redirecciona
+  // Mostrar pantalla de carga mientras se verifica la autenticación
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
+  // Si no hay empleado activo y ya terminó de cargar, redirigir a login
   if (!currentEmployee) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   const handleLogout = () => {
     setCurrentEmployee(null);
+    navigate('/login', { replace: true });
   };
 
   const currentTimesheet = getCurrentTimesheet();
@@ -40,12 +54,17 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header con botón de configuración */}
-      <div className="p-4 flex justify-between">
+      {/* Header con botón de configuración y logout */}
+      <div className="p-4 flex justify-between items-center">
         <h2 className="text-lg font-medium">Control de Jornada</h2>
-        <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
-          <Settings className="h-6 w-6 text-gray-500" />
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
+            <Settings className="h-6 w-6 text-gray-500" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
 
       <div className="container max-w-md mx-auto px-4 pb-12">
@@ -63,7 +82,7 @@ const EmployeeDashboard = () => {
 
         {/* Fecha de la jornada */}
         <h2 className="text-2xl font-medium text-center mb-6">
-          Jornada del dia {formattedDate}
+          Jornada del día {formattedDate}
         </h2>
 
         {/* Control de jornada */}

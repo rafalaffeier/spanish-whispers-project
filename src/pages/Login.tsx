@@ -49,22 +49,33 @@ const Login = () => {
   
   // Check if user is already logged in
   useEffect(() => {
-    const employee = localStorage.getItem('currentEmployee');
-    if (employee) {
-      try {
-        const employeeData = JSON.parse(employee);
-        console.log("Found saved employee data:", employeeData);
-        
-        // Redirect based on role
-        if (employeeData.isCompany || employeeData.role === 'empleador') {
-          navigate("/admin");
-        } else {
-          navigate("/employee");
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const employee = localStorage.getItem('currentEmployee');
+      if (employee) {
+        try {
+          const employeeData = JSON.parse(employee);
+          console.log("Found saved employee data, redirecting:", employeeData);
+          
+          // Redirect based on role after a short delay to ensure context is loaded
+          setTimeout(() => {
+            if (employeeData.isCompany || employeeData.role === 'empleador') {
+              navigate("/admin");
+            } else {
+              navigate("/employee");
+            }
+          }, 100);
+        } catch (e) {
+          console.error("Error parsing saved employee data:", e);
+          localStorage.removeItem('currentEmployee');
+          localStorage.removeItem('authToken');
         }
-      } catch (e) {
-        console.error("Error parsing saved employee data:", e);
-        localStorage.removeItem('currentEmployee');
+      } else {
+        console.log("Token exists but no employee data");
+        localStorage.removeItem('authToken');
       }
+    } else {
+      console.log("No auth token found, staying on login page");
     }
   }, [navigate]);
 
@@ -86,10 +97,10 @@ const Login = () => {
       // Redirigir según el rol del usuario
       if (employee.isCompany || employee.role === 'empleador') {
         console.log("Redirecting to admin dashboard");
-        navigate("/admin");
+        navigate("/admin", { replace: true });
       } else {
         console.log("Redirecting to employee dashboard");
-        navigate("/employee");
+        navigate("/employee", { replace: true });
       }
     } catch (error) {
       console.error("Error al iniciar sesión:", error);

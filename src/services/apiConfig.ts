@@ -1,7 +1,7 @@
 
 // API configuration for environment management
 const API_PRODUCTION_URL = 'https://aplium.com/apphora/api';
-const API_DEVELOPMENT_URL = '/apphora/api';
+const API_DEVELOPMENT_URL = '/api'; // Simplificado para desarrollo
 
 // Determinate if we're in development mode
 export const isDevelopment = () => {

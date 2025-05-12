@@ -27,8 +27,13 @@ const queryClient = new QueryClient({
   }
 });
 
-// Definir base path para la aplicación - debe coincidir con el configurado en .htaccess
-const BASE_PATH = '/apphora';
+// Determinar si estamos en desarrollo o producción
+const isDevelopment = () => {
+  return import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+};
+
+// Definir base path para la aplicación - solo en producción
+const BASE_PATH = isDevelopment() ? '' : '/apphora';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
