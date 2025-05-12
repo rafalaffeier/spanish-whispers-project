@@ -1,3 +1,4 @@
+
 // Servicios para autenticación y registro
 import { RegistrationData, PasswordResetRequest, PasswordResetConfirm, Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
@@ -10,16 +11,18 @@ export const login = async (email: string, password: string): Promise<{
   token: string
 }> => {
   try {
-    console.log("Login attempt for:", email);
+    console.log("[authService] Login attempt for:", email);
     
     const response = await fetchWithAuth('/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    console.log("Login API response:", response);
+    console.log("[authService] Login API response:", response);
 
     if (response && response.token) {
+      // Guardar token en localStorage primero para asegurar que está disponible
+      localStorage.setItem('authToken', response.token);
       setAuthToken(response.token);
       
       // Mapear respuesta a formato Employee
@@ -31,14 +34,11 @@ export const login = async (email: string, password: string): Promise<{
         isCompany: response.empleado.esEmpresa || false
       };
 
-      console.log("Parsed employee data:", employee);
+      console.log("[authService] Parsed employee data:", employee);
 
       // Guardar el empleado en localStorage para recuperarlo al recargar
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
       
-      // Guardar token en localStorage
-      localStorage.setItem('authToken', response.token);
-
       return {
         employee,
         token: response.token
@@ -47,7 +47,7 @@ export const login = async (email: string, password: string): Promise<{
 
     throw new Error('Credenciales inválidas');
   } catch (error: any) {
-    console.error('Error durante el login:', error);
+    console.error('[authService] Error durante el login:', error);
     
     // Mejorar detección y manejo de errores
     if (error.message && typeof error.message === 'string') {

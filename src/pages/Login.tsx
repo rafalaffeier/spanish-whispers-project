@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -25,6 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTimesheet } from "@/context/TimesheetContext";
 
 const formSchema = z.object({
   email: z.string().email("Ingrese un email válido"),
@@ -37,6 +39,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const { setCurrentEmployee } = useTimesheet();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -86,8 +89,14 @@ const Login = () => {
     setLoginError(null);
     
     try {
+      console.log("Iniciando login con email:", data.email);
       const response = await login(data.email, data.password);
+      console.log("Login successful, response:", response);
+      
       const { employee } = response;
+      
+      // Actualizar el contexto con el empleado
+      setCurrentEmployee(employee);
       
       console.log("Login successful, employee data:", employee);
       

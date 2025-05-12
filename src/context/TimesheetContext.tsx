@@ -28,21 +28,26 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const initializeData = async () => {
       try {
         setLoading(true);
+        console.log('[TimesheetContext] Initializing data');
         
         // Verificar si hay un token válido en localStorage
         const token = localStorage.getItem('authToken');
         if (!token) {
+          console.log('[TimesheetContext] No auth token found');
           // Sin token, no hay empleado autenticado
           setCurrentEmployee(null);
           setLoading(false);
           return;
         }
         
+        console.log('[TimesheetContext] Auth token found, checking for employee data');
+        
         // Intentar cargar el empleado actual desde localStorage
         const savedEmployee = localStorage.getItem('currentEmployee');
         if (savedEmployee) {
           try {
             const employee = JSON.parse(savedEmployee);
+            console.log('[TimesheetContext] Found employee in localStorage:', employee);
             setCurrentEmployee(employee);
             
             // Si tenemos un empleado, cargar sus datos
@@ -50,19 +55,20 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               await loadEmployeeData(employee.id);
             }
           } catch (e) {
-            console.error('Error parsing currentEmployee from localStorage:', e);
+            console.error('[TimesheetContext] Error parsing currentEmployee from localStorage:', e);
             // Si hay un error al parsear, limpiar todo
             localStorage.removeItem('currentEmployee');
             localStorage.removeItem('authToken');
             setCurrentEmployee(null);
           }
         } else {
+          console.log('[TimesheetContext] No employee found in localStorage');
           // Si hay token pero no hay empleado, limpiar el token
           localStorage.removeItem('authToken');
           setCurrentEmployee(null);
         }
       } catch (error) {
-        console.error('Error initializing data:', error);
+        console.error('[TimesheetContext] Error initializing data:', error);
         toast({
           title: "Error de conexión",
           description: "No se pudieron cargar los datos. Por favor, inténtalo de nuevo.",
@@ -84,6 +90,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Función para actualizar el empleado actual
   const updateCurrentEmployee = (employee: Employee | null) => {
+    console.log('[TimesheetContext] Updating current employee:', employee);
     if (employee) {
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
       setCurrentEmployee(employee);
@@ -93,6 +100,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } else {
       // Si se está cerrando sesión, limpiar todo
+      console.log('[TimesheetContext] Clearing employee data (logout)');
       localStorage.removeItem('currentEmployee');
       localStorage.removeItem('authToken');
       setCurrentEmployee(null);
@@ -104,10 +112,12 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Función para cargar datos del empleado
   const loadEmployeeData = async (employeeId: string) => {
     try {
+      console.log('[TimesheetContext] Loading data for employee:', employeeId);
       setLoading(true);
       
       // Cargar timesheets del empleado
       const employeeTimesheets = await api.getTimesheetsByEmployee(employeeId);
+      console.log('[TimesheetContext] Loaded timesheets:', employeeTimesheets);
       setTimesheets(employeeTimesheets);
       
       // También podríamos cargar otros empleados si el usuario actual es empleador
@@ -121,7 +131,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
     } catch (error) {
-      console.error("Error loading employee data:", error);
+      console.error("[TimesheetContext] Error loading employee data:", error);
     } finally {
       setLoading(false);
     }

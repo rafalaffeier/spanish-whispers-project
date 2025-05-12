@@ -17,11 +17,16 @@ const EmployeeDashboard = () => {
   
   // Verificar autenticación al cargar
   useEffect(() => {
+    console.log("[EmployeeDashboard] Component mounted, current employee:", currentEmployee);
+    console.log("[EmployeeDashboard] Loading state:", loading);
+    
     const checkAuthentication = async () => {
       // Si el context ya terminó de cargar y no hay empleado, redirigir
       if (!loading && !currentEmployee) {
-        console.log("No hay empleado activo y ya terminó de cargar, redirigiendo a login");
+        console.log("[EmployeeDashboard] No active employee and loading completed, redirecting to login");
         navigate("/login", { replace: true });
+      } else if (currentEmployee) {
+        console.log("[EmployeeDashboard] Authentication verified, employee:", currentEmployee.name);
       }
     };
     
@@ -40,10 +45,12 @@ const EmployeeDashboard = () => {
 
   // Si no hay empleado activo y ya terminó de cargar, redirigir a login
   if (!currentEmployee) {
+    console.log("[EmployeeDashboard] No employee in state, redirecting to login");
     return <Navigate to="/login" replace />;
   }
 
   const handleLogout = () => {
+    console.log("[EmployeeDashboard] Logging out");
     setCurrentEmployee(null);
     navigate('/login', { replace: true });
   };
@@ -51,6 +58,8 @@ const EmployeeDashboard = () => {
   const currentTimesheet = getCurrentTimesheet();
   const today = new Date();
   const formattedDate = format(today, "dd-MM-yyyy");
+
+  console.log("[EmployeeDashboard] Rendering dashboard for:", currentEmployee.name);
 
   return (
     <div className="min-h-screen bg-gray-50">
