@@ -17,7 +17,7 @@ import AdminNews from "./pages/admin/AdminNews";
 import AdminProfile from "./pages/admin/AdminProfile";
 import NotFound from "./pages/NotFound";
 
-// Estilo mejorado con tema personalizado
+// Configuración mejorada para QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -33,7 +33,8 @@ const isDevelopment = () => {
 };
 
 // Definir base path para la aplicación - solo en producción
-const BASE_PATH = isDevelopment() ? '' : '/apphora';
+// En vista previa de lovable, asumimos que estamos en desarrollo
+const BASE_PATH = ''; // Quitamos el path base para la vista previa
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -45,7 +46,7 @@ const App = () => (
           <BrowserRouter basename={BASE_PATH}>
             <Routes>
               {/* Ruta raíz redirecciona a login */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} /> 
               <Route path="/password-reset" element={<PasswordReset />} />

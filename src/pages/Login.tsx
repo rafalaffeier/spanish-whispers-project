@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -47,15 +46,18 @@ const Login = () => {
     },
   });
   
-  // Check if user is already logged in
+  // Añadimos un log para verificar que la página se está cargando
   useEffect(() => {
+    console.log("Login page loaded");
+    
+    // Check if user is already logged in
     const token = localStorage.getItem('authToken');
     if (token) {
       const employee = localStorage.getItem('currentEmployee');
       if (employee) {
         try {
           const employeeData = JSON.parse(employee);
-          console.log("Found saved employee data, redirecting:", employeeData);
+          console.log("Found saved employee data:", employeeData);
           
           // Redirect based on role after a short delay to ensure context is loaded
           setTimeout(() => {
