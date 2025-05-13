@@ -13,6 +13,9 @@ export const login = async (email: string, password: string): Promise<{
   try {
     console.log("[authService] Login attempt for:", email);
     
+    // Depuración adicional
+    console.log("[authService] API Base URL:", API_BASE_URL);
+    
     const response = await fetchWithAuth('/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -49,8 +52,15 @@ export const login = async (email: string, password: string): Promise<{
   } catch (error: any) {
     console.error('[authService] Error durante el login:', error);
     
+    // Depuración adicional - mostrar más detalles del error
+    if (error.response) {
+      console.error('[authService] Error response:', error.response);
+    }
+    
     // Mejorar detección y manejo de errores
-    if (error.message && typeof error.message === 'string') {
+    if (error.error) {
+      throw new Error(error.error);
+    } else if (error.message && typeof error.message === 'string') {
       throw new Error(error.message);
     } else if (error.statusText) {
       throw new Error(`Error: ${error.statusText}`);
@@ -202,15 +212,35 @@ export const register = async (data: RegistrationData): Promise<any> => {
 
 // Funciones para recuperación de contraseña
 export const requestPasswordReset = async (data: PasswordResetRequest): Promise<void> => {
-  await fetchWithAuth('/recuperar-password', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  console.log("[authService] Requesting password reset for:", data.email);
+  try {
+    const response = await fetchWithAuth('/recuperar-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    
+    console.log("[authService] Password reset request response:", response);
+    
+    return response;
+  } catch (error) {
+    console.error('[authService] Error requesting password reset:', error);
+    throw error;
+  }
 };
 
 export const confirmPasswordReset = async (data: PasswordResetConfirm): Promise<void> => {
-  await fetchWithAuth('/reset-password', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  console.log("[authService] Confirming password reset with token:", data.token);
+  try {
+    const response = await fetchWithAuth('/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    
+    console.log("[authService] Password reset confirmation response:", response);
+    
+    return response;
+  } catch (error) {
+    console.error('[authService] Error confirming password reset:', error);
+    throw error;
+  }
 };

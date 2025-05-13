@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import GoogleMap from './GoogleMap';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Employee } from '@/types/timesheet';
@@ -8,16 +8,24 @@ import { Users, MapPin } from 'lucide-react';
 interface EmployeesActivityMapProps {
   employees: Employee[];
   title?: string;
+  onMapInitialized?: () => void;
 }
 
 const EmployeesActivityMap: React.FC<EmployeesActivityMapProps> = ({ 
   employees, 
-  title = "Actividad de empleados" 
+  title = "Actividad de empleados",
+  onMapInitialized
 }) => {
   // Filtrar empleados con coordenadas válidas
   const employeesWithLocation = employees.filter(
     emp => emp.coordinates && typeof emp.coordinates.lat === 'number' && typeof emp.coordinates.lng === 'number'
   );
+
+  useEffect(() => {
+    if (onMapInitialized) {
+      onMapInitialized();
+    }
+  }, [onMapInitialized]);
 
   // Verificar si hay empleados con ubicación
   if (employeesWithLocation.length === 0) {
@@ -67,6 +75,7 @@ const EmployeesActivityMap: React.FC<EmployeesActivityMapProps> = ({
           markers={markers}
           height="400px"
           className="rounded-md overflow-hidden"
+          onMapLoaded={onMapInitialized}
         />
       </CardContent>
     </Card>

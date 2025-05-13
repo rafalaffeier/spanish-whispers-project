@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { toast } from 'sonner';
 import { Lock } from 'lucide-react';
 import { confirmPasswordReset } from '@/services/authService';
+import DebugPanel from '@/components/debug/DebugPanel';
 
 const formSchema = z.object({
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
@@ -24,6 +25,7 @@ const PasswordResetConfirm = () => {
   const navigate = useNavigate();
   const { token } = useParams<{ token: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debugData, setDebugData] = useState<Record<string, any>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,23 +34,54 @@ const PasswordResetConfirm = () => {
       confirmPassword: ''
     },
   });
+  
+  // Función para añadir logs
+  const addLog = (message: string) => {
+    console.log(`[PasswordResetConfirm] ${message}`);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+  };
+  
+  useEffect(() => {
+    addLog("Password reset confirm page loaded");
+    if (token) {
+      addLog(`Token provided: ${token.substring(0, 8)}...`);
+      setDebugData(prev => ({
+        ...prev,
+        token: token.substring(0, 8) + '...',
+        page: 'PasswordResetConfirm'
+      }));
+    } else {
+      addLog("No token provided");
+      setDebugData(prev => ({
+        ...prev,
+        error: "No token provided",
+        page: 'PasswordResetConfirm'
+      }));
+    }
+  }, [token]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!token) {
       toast.error("Token de recuperación no válido");
+      addLog("No token available, cannot submit form");
       return;
     }
     
     setIsSubmitting(true);
+    addLog("Submitting password reset");
     
     try {
       // Incluir el token en los datos para el reset
       await confirmPasswordReset({ 
         token: token,
-        password: values.password,
-        // No incluimos confirmPassword porque no es necesario en la API
+        password: values.password
       });
       
+      addLog("Password reset successful");
       toast.success("Contraseña actualizada correctamente");
       
       setTimeout(() => {
@@ -60,6 +93,7 @@ const PasswordResetConfirm = () => {
         ? error.message 
         : 'Error al restablecer la contraseña';
       
+      addLog(`Password reset error: ${errorMessage}`);
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -131,6 +165,12 @@ const PasswordResetConfirm = () => {
           </Button>
         </CardFooter>
       </Card>
+      
+      {/* Debug Panel */}
+      <DebugPanel 
+        title="Password Reset Confirm Debug" 
+        data={debugData} 
+      />
     </div>
   );
 };

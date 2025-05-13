@@ -26,8 +26,40 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
   const loadingRef = useRef<boolean>(false);
   const apiKey = 'AIzaSyBBJ4VFjgclhCQMDL1hkOzsvZBXJimCllc';
+
+  // Limpiar marcadores existentes
+  const clearMarkers = () => {
+    if (markersRef.current.length > 0) {
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+    }
+  };
+
+  // Añadir marcadores al mapa
+  const addMarkers = () => {
+    if (!mapInstanceRef.current) return;
+    
+    clearMarkers();
+    
+    markers.forEach(marker => {
+      try {
+        const newMarker = new google.maps.Marker({
+          position: marker.position,
+          map: mapInstanceRef.current,
+          title: marker.title || '',
+        });
+        
+        markersRef.current.push(newMarker);
+      } catch (error) {
+        console.error('[GoogleMap] Error adding marker:', error);
+      }
+    });
+    
+    console.log(`[GoogleMap] Added ${markersRef.current.length} markers`);
+  };
 
   useEffect(() => {
     // Función para cargar el mapa
@@ -47,20 +79,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           fullscreenControl: true,
           zoomControl: true,
         });
-
-        // Agregar marcadores si existen
-        markers.forEach(marker => {
-          console.log('[GoogleMap] Adding marker at:', marker.position);
-          new window.google.maps.Marker({
-            position: marker.position,
-            map: mapInstanceRef.current,
-            title: marker.title || '',
-          });
-        });
+        
+        // Añadir marcadores
+        addMarkers();
         
         // Notificar que el mapa se ha cargado
         if (onMapLoaded) {
-          onMapLoaded();
+          window.google.maps.event.addListenerOnce(mapInstanceRef.current, 'idle', () => {
+            console.log('[GoogleMap] Map idle event triggered');
+            onMapLoaded();
+          });
         }
         
         console.log('[GoogleMap] Map successfully loaded');
@@ -121,16 +149,24 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     };
 
     loadGoogleMapsApi();
-  }, [center, zoom, markers, onMapLoaded]);
+    
+    // Cleanup function
+    return () => {
+      clearMarkers();
+    };
+  }, []); // Solo ejecutar al montar
 
   // Actualizar el mapa cuando cambien las propiedades
   useEffect(() => {
-    if (mapInstanceRef.current && window.google) {
+    if (mapInstanceRef.current) {
       console.log('[GoogleMap] Updating map center and zoom');
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(zoom);
+      
+      // Actualizar marcadores
+      addMarkers();
     }
-  }, [center, zoom]);
+  }, [center, zoom, markers]);
 
   return (
     <div className={className}>

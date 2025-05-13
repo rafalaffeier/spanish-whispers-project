@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { requestPasswordReset } from "@/services/api";
+import DebugPanel from "@/components/debug/DebugPanel";
 
 const formSchema = z.object({
   email: z.string().email("Ingresa un email válido"),
@@ -28,6 +29,7 @@ type FormValues = z.infer<typeof formSchema>;
 const PasswordReset: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [debugData, setDebugData] = React.useState<Record<string, any>>({});
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -36,8 +38,29 @@ const PasswordReset: React.FC = () => {
     },
   });
 
+  // Función para añadir logs
+  const addLog = (message: string) => {
+    console.log(`[PasswordReset] ${message}`);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+  };
+
+  // Añadir log de carga de página
+  React.useEffect(() => {
+    addLog("Password reset page loaded");
+    setDebugData({
+      page: "PasswordReset",
+      timestamp: new Date().toISOString()
+    });
+  }, []);
+
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
+    addLog(`Requesting password reset for: ${data.email}`);
+    
     try {
       await requestPasswordReset({ email: data.email });
       toast({
@@ -45,6 +68,7 @@ const PasswordReset: React.FC = () => {
         description: "Si el correo electrónico existe, recibirás instrucciones para recuperar tu contraseña.",
         variant: "default",
       });
+      addLog(`Password reset request sent successfully for: ${data.email}`);
       form.reset();
     } catch (error) {
       // Incluso si hay un error, mostraremos el mismo mensaje
@@ -54,6 +78,7 @@ const PasswordReset: React.FC = () => {
         description: "Si el correo electrónico existe, recibirás instrucciones para recuperar tu contraseña.",
         variant: "default",
       });
+      addLog(`Error during password reset request: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -131,6 +156,12 @@ const PasswordReset: React.FC = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Debug Panel */}
+      <DebugPanel 
+        title="Password Reset Debug" 
+        data={debugData} 
+      />
     </div>
   );
 };
