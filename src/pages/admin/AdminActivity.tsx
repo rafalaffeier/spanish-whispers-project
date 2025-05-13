@@ -1,18 +1,74 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Clock } from 'lucide-react';
+import DebugPanel from '@/components/debug/DebugPanel';
 
 const AdminActivity = () => {
   const { timesheets, employees } = useTimesheet();
   const navigate = useNavigate();
+  const [debugData, setDebugData] = useState<Record<string, any>>({});
+  
+  // Función de logging para depuración
+  const addLog = (message: string) => {
+    console.log(`[AdminActivity] ${message}`);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+  };
+  
+  // Verificar autenticación al montar
+  useEffect(() => {
+    addLog("Component mounted");
+    
+    const token = localStorage.getItem('authToken');
+    const employeeData = localStorage.getItem('currentEmployee');
+    
+    if (!token || !employeeData) {
+      addLog("No authentication found, redirecting to login");
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    try {
+      const parsedEmployee = JSON.parse(employeeData);
+      if (!parsedEmployee.isCompany && parsedEmployee.role !== 'empleador') {
+        addLog("User is not admin/employer, redirecting");
+        navigate('/employee', { replace: true });
+      } else {
+        addLog(`Admin authenticated: ${parsedEmployee.name}`);
+      }
+      
+      setDebugData(prev => ({
+        ...prev,
+        currentEmployee: parsedEmployee
+      }));
+    } catch (error) {
+      addLog(`Error parsing employee data: ${error instanceof Error ? error.message : String(error)}`);
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
   
   // Obtener la actividad reciente (últimos 10 registros)
   const recentActivity = [...timesheets]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10);
+  
+  // Actualizar datos de depuración cuando cambien los datos
+  useEffect(() => {
+    setDebugData(prev => ({
+      ...prev,
+      timesheetsCount: timesheets.length,
+      employeesCount: employees.length,
+      recentActivityCount: recentActivity.length
+    }));
+    
+    addLog(`Data loaded: ${timesheets.length} timesheets, ${recentActivity.length} recent activities`);
+  }, [timesheets, employees, recentActivity]);
 
   return (
     <div className="flex h-screen w-full bg-gray-50">
@@ -44,7 +100,14 @@ const AdminActivity = () => {
                   const endTime = activity.endTime ? new Date(activity.endTime).toLocaleTimeString() : 'En progreso';
                   
                   return (
-                    <div key={index} className="border-b pb-3 last:border-0">
+                    <div key={index} className="border-b pb-3 last:border-0" onClick={() => {
+                      addLog(`Clicked on activity: ${activity.id} for employee ${employee?.name}`);
+                      setDebugData(prev => ({
+                        ...prev,
+                        selectedActivity: activity,
+                        selectedEmployee: employee
+                      }));
+                    }}>
                       <div className="flex justify-between">
                         <div>
                           <p className="font-medium">{employee?.name || 'Empleado desconocido'}</p>
@@ -63,7 +126,7 @@ const AdminActivity = () => {
                           </span>
                         </div>
                       </div>
-                      {activity.pauseTime.length > 0 && (
+                      {activity.pauseTime && activity.pauseTime.length > 0 && (
                         <p className="text-xs text-gray-500 mt-1">
                           {activity.pauseTime.length} pausas registradas
                         </p>
@@ -80,6 +143,12 @@ const AdminActivity = () => {
           </div>
         </main>
       </div>
+      
+      {/* Panel de depuración */}
+      <DebugPanel 
+        title="Admin Activity Debug" 
+        data={debugData} 
+      />
     </div>
   );
 };

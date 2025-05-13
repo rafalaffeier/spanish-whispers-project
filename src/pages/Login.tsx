@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTimesheet } from "@/context/TimesheetContext";
+import DebugPanel from "@/components/debug/DebugPanel";
 
 const formSchema = z.object({
   email: z.string().email("Ingrese un email válido"),
@@ -40,6 +41,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const { setCurrentEmployee } = useTimesheet();
+  const [debugData, setDebugData] = useState({});
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -49,9 +52,20 @@ const Login = () => {
     },
   });
   
+  // Función para añadir logs
+  const addLog = (message: string) => {
+    setDebugLogs(prev => [...prev, message]);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+    console.log("[Login]", message);
+  };
+  
   // Añadimos un log para verificar que la página se está cargando
   useEffect(() => {
-    console.log("Login page loaded");
+    addLog("Login page loaded");
     
     // Check if user is already logged in
     const token = localStorage.getItem('authToken');
@@ -60,27 +74,29 @@ const Login = () => {
       if (employee) {
         try {
           const employeeData = JSON.parse(employee);
-          console.log("Found saved employee data:", employeeData);
+          addLog(`Found saved employee data: ${JSON.stringify(employeeData)}`);
           
           // Redirect based on role after a short delay to ensure context is loaded
           setTimeout(() => {
             if (employeeData.isCompany || employeeData.role === 'empleador') {
+              addLog("Redirecting to admin dashboard");
               navigate("/admin");
             } else {
+              addLog("Redirecting to employee dashboard");
               navigate("/employee");
             }
           }, 100);
         } catch (e) {
-          console.error("Error parsing saved employee data:", e);
+          addLog(`Error parsing saved employee data: ${e instanceof Error ? e.message : String(e)}`);
           localStorage.removeItem('currentEmployee');
           localStorage.removeItem('authToken');
         }
       } else {
-        console.log("Token exists but no employee data");
+        addLog("Token exists but no employee data");
         localStorage.removeItem('authToken');
       }
     } else {
-      console.log("No auth token found, staying on login page");
+      addLog("No auth token found, staying on login page");
     }
   }, [navigate]);
 
@@ -89,16 +105,20 @@ const Login = () => {
     setLoginError(null);
     
     try {
-      console.log("Iniciando login con email:", data.email);
+      addLog(`Iniciando login con email: ${data.email}`);
       const response = await login(data.email, data.password);
-      console.log("Login successful, response:", response);
+      addLog(`Login successful, response: ${JSON.stringify(response)}`);
       
       const { employee } = response;
       
       // Actualizar el contexto con el empleado
       setCurrentEmployee(employee);
+      setDebugData(prev => ({
+        ...prev,
+        currentEmployee: employee
+      }));
       
-      console.log("Login successful, employee data:", employee);
+      addLog(`Login successful, employee data: ${JSON.stringify(employee)}`);
       
       toast({
         title: "Inicio de sesión exitoso",
@@ -107,14 +127,14 @@ const Login = () => {
       
       // Redirigir según el rol del usuario
       if (employee.isCompany || employee.role === 'empleador') {
-        console.log("Redirecting to admin dashboard");
+        addLog("Redirecting to admin dashboard");
         navigate("/admin", { replace: true });
       } else {
-        console.log("Redirecting to employee dashboard");
+        addLog("Redirecting to employee dashboard");
         navigate("/employee", { replace: true });
       }
     } catch (error) {
-      console.error("Error al iniciar sesión:", error);
+      addLog(`Error al iniciar sesión: ${error instanceof Error ? error.message : String(error)}`);
       setLoginError(error instanceof Error ? error.message : "Error al iniciar sesión. Verifique sus credenciales.");
     } finally {
       setIsLoading(false);
@@ -200,6 +220,7 @@ const Login = () => {
                   type="submit"
                   className="w-full"
                   disabled={isLoading}
+                  onClick={() => addLog("Botón de login presionado")}
                 >
                   {isLoading ? (
                     "Iniciando sesión..."
@@ -223,6 +244,11 @@ const Login = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      <DebugPanel 
+        title="Login Debug" 
+        data={debugData} 
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -8,10 +9,57 @@ import { useTimesheet } from '@/context/TimesheetContext';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Download, Users } from 'lucide-react';
 import EmployeesActivityMap from '@/components/maps/EmployeesActivityMap';
+import DebugPanel from '@/components/debug/DebugPanel';
 
 const AdminDashboard = () => {
-  const { employees, timesheets } = useTimesheet();
+  const navigate = useNavigate();
+  const { employees, timesheets, currentEmployee } = useTimesheet();
   const [selectedView, setSelectedView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [debugData, setDebugData] = useState<Record<string, any>>({});
+  
+  // Función de logging para depuración
+  const addLog = (message: string) => {
+    console.log(`[AdminDashboard] ${message}`);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+  };
+  
+  // Verificar autenticación al montar
+  useEffect(() => {
+    addLog("Component mounted");
+    
+    const token = localStorage.getItem('authToken');
+    const employeeData = localStorage.getItem('currentEmployee');
+    
+    if (!token || !employeeData) {
+      addLog("No authentication found, redirecting to login");
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    try {
+      const parsedEmployee = JSON.parse(employeeData);
+      if (!parsedEmployee.isCompany && parsedEmployee.role !== 'empleador') {
+        addLog("User is not admin/employer, redirecting");
+        navigate('/employee', { replace: true });
+      } else {
+        addLog(`Admin authenticated: ${parsedEmployee.name}`);
+      }
+      
+      // Actualizar datos de depuración
+      setDebugData(prev => ({
+        ...prev,
+        currentEmployee: parsedEmployee,
+        authState: 'active'
+      }));
+    } catch (error) {
+      addLog(`Error parsing employee data: ${error instanceof Error ? error.message : String(error)}`);
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
   
   // Obtener fecha actual formateada
   const today = new Date();
@@ -48,6 +96,19 @@ const AdminDashboard = () => {
     return total + (timesheet.pauses?.length || 0);
   }, 0);
 
+  useEffect(() => {
+    // Actualizar datos de depuración cuando cambien los datos
+    setDebugData(prev => ({
+      ...prev,
+      employeesCount: employees.length,
+      timesheetsCount: timesheets.length,
+      todayTimesheets: todayTimesheets.length,
+      activeEmployees
+    }));
+    
+    addLog(`Data loaded: ${employees.length} employees, ${timesheets.length} timesheets`);
+  }, [employees, timesheets, todayTimesheets.length, activeEmployees]);
+
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
@@ -64,7 +125,13 @@ const AdminDashboard = () => {
             <h2 className="text-2xl font-semibold">Resumen de actividad</h2>
             
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  addLog("Exportando datos a CSV");
+                }}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar CSV
               </Button>
@@ -121,6 +188,9 @@ const AdminDashboard = () => {
             <EmployeesActivityMap 
               employees={employees} 
               title="Localización de empleados"
+              onMapInitialized={() => {
+                addLog("Mapa de actividad inicializado");
+              }}
             />
           </div>
           
@@ -137,19 +207,28 @@ const AdminDashboard = () => {
                 <div className="flex space-x-2">
                   <Button 
                     variant={selectedView === 'daily' ? 'default' : 'outline'}
-                    onClick={() => setSelectedView('daily')}
+                    onClick={() => {
+                      setSelectedView('daily');
+                      addLog("Vista cambiada a diaria");
+                    }}
                   >
                     Hoy
                   </Button>
                   <Button 
                     variant={selectedView === 'weekly' ? 'default' : 'outline'}
-                    onClick={() => setSelectedView('weekly')}
+                    onClick={() => {
+                      setSelectedView('weekly');
+                      addLog("Vista cambiada a semanal");
+                    }}
                   >
                     Semanales
                   </Button>
                   <Button 
                     variant={selectedView === 'monthly' ? 'default' : 'outline'}
-                    onClick={() => setSelectedView('monthly')}
+                    onClick={() => {
+                      setSelectedView('monthly');
+                      addLog("Vista cambiada a mensual");
+                    }}
                   >
                     Mensuales
                   </Button>
@@ -159,6 +238,12 @@ const AdminDashboard = () => {
           </div>
         </main>
       </div>
+      
+      {/* Panel de depuración */}
+      <DebugPanel 
+        title="Admin Dashboard Debug" 
+        data={debugData} 
+      />
     </div>
   );
 };

@@ -10,28 +10,51 @@ import ProfileEditDialog from '@/components/profile/ProfileEditDialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { clearAuth } from '@/services/apiConfig';
+import DebugPanel from '@/components/debug/DebugPanel';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet, loading } = useTimesheet();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [debugData, setDebugData] = useState<Record<string, any>>({});
+  
+  // Función de logging para depuración
+  const addLog = (message: string) => {
+    console.log(`[EmployeeDashboard] ${message}`);
+    setDebugData(prev => ({
+      ...prev,
+      lastAction: message,
+      timestamp: new Date().toISOString()
+    }));
+  };
   
   // Verificar geolocalización
   useEffect(() => {
     const checkGeolocation = () => {
       if (!navigator.geolocation) {
         setGeoError("Tu navegador no soporta la geolocalización. Esto es necesario para registrar tu jornada.");
+        addLog("Geolocation not supported");
         return;
       }
       
       navigator.geolocation.getCurrentPosition(
-        () => {
+        (position) => {
           // Geolocalización permitida
           setGeoError(null);
+          addLog(`Geolocation permitted: ${position.coords.latitude}, ${position.coords.longitude}`);
+          setDebugData(prev => ({
+            ...prev,
+            location: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            }
+          }));
         },
         (error) => {
           console.warn("Error de geolocalización:", error);
+          addLog(`Geolocation error: ${error.code} - ${error.message}`);
           
           // Mensajes de error específicos según el código de error
           switch(error.code) {
@@ -57,16 +80,24 @@ const EmployeeDashboard = () => {
   
   // Verificar autenticación al cargar
   useEffect(() => {
-    console.log("[EmployeeDashboard] Component mounted, current employee:", currentEmployee);
-    console.log("[EmployeeDashboard] Loading state:", loading);
+    addLog(`Component mounted, current employee: ${JSON.stringify(currentEmployee)}`);
+    addLog(`Loading state: ${loading}`);
+    
+    // Actualizar datos de depuración
+    setDebugData(prev => ({
+      ...prev,
+      currentEmployee,
+      loading,
+      authState: localStorage.getItem('authToken') ? 'active' : 'inactive'
+    }));
     
     const checkAuthentication = async () => {
       // Si el context ya terminó de cargar y no hay empleado, redirigir
       if (!loading && !currentEmployee) {
-        console.log("[EmployeeDashboard] No active employee and loading completed, redirecting to login");
+        addLog("No active employee and loading completed, redirecting to login");
         navigate("/login", { replace: true });
       } else if (currentEmployee) {
-        console.log("[EmployeeDashboard] Authentication verified, employee:", currentEmployee.name);
+        addLog(`Authentication verified, employee: ${currentEmployee.name}`);
       }
     };
     
@@ -79,18 +110,22 @@ const EmployeeDashboard = () => {
       <div className="min-h-screen flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
         <p>Cargando...</p>
+        <DebugPanel 
+          title="Employee Loading" 
+          data={{ loading, authToken: !!localStorage.getItem('authToken') }} 
+        />
       </div>
     );
   }
 
   // Si no hay empleado activo y ya terminó de cargar, redirigir a login
   if (!currentEmployee) {
-    console.log("[EmployeeDashboard] No employee in state, redirecting to login");
+    addLog("No employee in state, redirecting to login");
     return <Navigate to="/login" replace />;
   }
 
   const handleLogout = () => {
-    console.log("[EmployeeDashboard] Logging out");
+    addLog("Logging out");
     // Limpiar el estado de autenticación por completo
     clearAuth();
     setCurrentEmployee(null);
@@ -101,7 +136,7 @@ const EmployeeDashboard = () => {
   const today = new Date();
   const formattedDate = format(today, "dd-MM-yyyy");
 
-  console.log("[EmployeeDashboard] Rendering dashboard for:", currentEmployee.name);
+  addLog(`Rendering dashboard for: ${currentEmployee.name}`);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,10 +144,16 @@ const EmployeeDashboard = () => {
       <div className="p-4 flex justify-between items-center">
         <h2 className="text-lg font-medium">Control de Jornada</h2>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={() => {
+            addLog("Abriendo configuración de perfil");
+            setProfileDialogOpen(true);
+          }}>
             <Settings className="h-6 w-6 text-gray-500" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
+          <Button variant="outline" size="sm" onClick={() => {
+            addLog("Iniciando proceso de logout");
+            handleLogout();
+          }}>
             <LogOut className="h-4 w-4 mr-2" />
             Cerrar sesión
           </Button>
@@ -151,7 +192,14 @@ const EmployeeDashboard = () => {
         {/* Control de jornada */}
         <TimesheetControl 
           employee={currentEmployee} 
-          onUpdate={updateTimesheet}
+          onUpdate={(timesheet) => {
+            addLog(`Timesheet updated: ${JSON.stringify(timesheet)}`);
+            updateTimesheet(timesheet);
+            setDebugData(prev => ({
+              ...prev,
+              currentTimesheet: timesheet
+            }));
+          }}
           existingTimesheet={currentTimesheet}
         />
         
@@ -168,7 +216,20 @@ const EmployeeDashboard = () => {
       {/* Diálogo de edición de perfil */}
       <ProfileEditDialog 
         open={profileDialogOpen} 
-        onOpenChange={setProfileDialogOpen} 
+        onOpenChange={(open) => {
+          setProfileDialogOpen(open);
+          addLog(`ProfileEditDialog ${open ? 'opened' : 'closed'}`);
+        }} 
+      />
+      
+      {/* Panel de depuración */}
+      <DebugPanel 
+        title="Employee Dashboard Debug" 
+        data={{
+          employee: currentEmployee,
+          timesheet: currentTimesheet,
+          ...debugData
+        }} 
       />
     </div>
   );
