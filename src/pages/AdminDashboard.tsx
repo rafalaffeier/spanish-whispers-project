@@ -1,377 +1,161 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTimesheet } from '@/context/TimesheetContext';
+
+import React, { useState } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
-import TimesheetTable from '@/components/TimesheetTable';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, FileDown, FileText, PauseCircle, Clock, Users } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, isWithinInterval, addWeeks, addMonths, subWeeks, subMonths } from 'date-fns';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { TimesheetPeriod } from '@/types/timesheet';
+import { useTimesheet } from '@/context/TimesheetContext';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, Download, Users } from 'lucide-react';
+import EmployeesActivityMap from '@/components/maps/EmployeesActivityMap';
 
 const AdminDashboard = () => {
-  const { timesheets, employees } = useTimesheet();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [activePeriod, setActivePeriod] = useState<TimesheetPeriod>('daily');
-  const navigate = useNavigate();
+  const { employees, timesheets } = useTimesheet();
+  const [selectedView, setSelectedView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   
-  // Función para obtener el rango de fechas según el período seleccionado
-  const getDateRangeForPeriod = (date: Date, period: TimesheetPeriod): { start: Date, end: Date } => {
-    switch (period) {
-      case 'daily':
-        return { start: date, end: date };
-      case 'weekly':
-        return {
-          start: startOfWeek(date, { weekStartsOn: 1 }), // Semana comienza el lunes
-          end: endOfWeek(date, { weekStartsOn: 1 }) // Semana termina el domingo
-        };
-      case 'monthly':
-        return {
-          start: startOfMonth(date),
-          end: endOfMonth(date)
-        };
-      default:
-        return { start: date, end: date };
-    }
-  };
+  // Obtener fecha actual formateada
+  const today = new Date();
+  const formattedDate = format(today, "d 'de' MMMM 'de' yyyy", { locale: es });
   
-  // Obtener el rango de fechas actual
-  const currentDateRange = useMemo(() => {
-    if (!selectedDate) return { start: new Date(), end: new Date() };
-    return getDateRangeForPeriod(selectedDate, activePeriod);
-  }, [selectedDate, activePeriod]);
-  
-  // Formatear fecha para mostrar
-  const formattedDateRange = useMemo(() => {
-    if (!selectedDate) return '';
-    
-    const { start, end } = currentDateRange;
-    
-    if (activePeriod === 'daily') {
-      return format(start, 'dd-MM-yyyy');
-    } else if (activePeriod === 'weekly') {
-      return `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`;
-    } else {
-      return format(start, 'MMMM yyyy', { locale: es });
-    }
-  }, [selectedDate, activePeriod, currentDateRange]);
-  
-  // Filtrar los registros por fecha y empleado según el período seleccionado
-  const filteredTimesheets = useMemo(() => {
-    return timesheets.filter(timesheet => {
-      // Convertir la fecha del timesheet a objeto Date
-      const timesheetDate = new Date(timesheet.date);
-      
-      // Verificar si la fecha está dentro del rango seleccionado
-      const isInDateRange = activePeriod === 'daily' 
-        ? isSameDay(timesheetDate, currentDateRange.start)
-        : isWithinInterval(timesheetDate, { 
-            start: currentDateRange.start, 
-            end: currentDateRange.end 
-          });
-      
-      // Filtrar por empleado si hay uno seleccionado
-      const matchesEmployee = !selectedEmployee || timesheet.employeeId === selectedEmployee;
-      
-      return isInDateRange && matchesEmployee;
-    });
-  }, [timesheets, currentDateRange, selectedEmployee, activePeriod]);
-  
-  // Agrupar empleados para el selector
-  const uniqueEmployees = employees.filter((employee, index, self) =>
-    index === self.findIndex((e) => e.id === employee.id)
+  // Filtrar jornadas de hoy
+  const todayTimesheets = timesheets.filter(timesheet => 
+    timesheet.date === format(today, 'yyyy-MM-dd')
   );
-
-  // Función para avanzar o retroceder en el período
-  const changePeriod = (direction: 'next' | 'prev') => {
-    if (!selectedDate) return;
-    
-    let newDate = new Date(selectedDate);
-    
-    if (activePeriod === 'daily') {
-      newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-    } else if (activePeriod === 'weekly') {
-      newDate = direction === 'next' ? addWeeks(newDate, 1) : subWeeks(newDate, 1);
-    } else { // monthly
-      newDate = direction === 'next' ? addMonths(newDate, 1) : subMonths(newDate, 1);
+  
+  // Calcular total de horas trabajadas hoy
+  const totalHoursWorked = todayTimesheets.reduce((total, timesheet) => {
+    if (timesheet.startTime && timesheet.endTime) {
+      const start = new Date(timesheet.startTime);
+      const end = new Date(timesheet.endTime);
+      const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      return total + diffHours;
     }
-    
-    setSelectedDate(newDate);
-  };
+    return total;
+  }, 0);
+  
+  // Formatear horas trabajadas como hh:mm
+  const formattedHours = Math.floor(totalHoursWorked);
+  const formattedMinutes = Math.round((totalHoursWorked - formattedHours) * 60);
+  const hoursDisplay = `${formattedHours}h ${formattedMinutes}m`;
+  
+  // Contar empleados activos (con jornada iniciada hoy)
+  const activeEmployees = todayTimesheets.filter(ts => 
+    ts.status === 'active' || ts.status === 'paused'
+  ).length;
 
-  // Función para descargar CSV (simulada)
-  const downloadCSV = () => {
-    console.log("Descargando CSV...");
-    alert("Descarga de CSV iniciada");
-  };
-
-  // Función para descargar PDF (simulada)
-  const downloadPDF = () => {
-    console.log("Descargando PDF...");
-    alert("Descarga de PDF iniciada");
-  };
-
-  // Calcular pausas totales
-  const calculateTotalPauses = () => {
-    return filteredTimesheets.reduce((total, timesheet) => {
-      return total + (timesheet.pauses ? timesheet.pauses.length : 0);
-    }, 0);
-  };
-
-  // Calcular horas trabajadas totales (para el período seleccionado)
-  const calculateTotalHours = () => {
-    let totalMinutes = 0;
-    
-    filteredTimesheets.forEach(timesheet => {
-      if (!timesheet.startTime) return;
-      
-      // Obtener tiempo inicial y final
-      const start = new Date(timesheet.startTime).getTime();
-      const end = timesheet.endTime 
-        ? new Date(timesheet.endTime).getTime() 
-        : start;
-      
-      // Calcular tiempo total descontando pausas
-      let totalMs = end - start;
-      
-      // Restar tiempo de pausas
-      let pauseTime = 0;
-      for (let i = 0; i < timesheet.pauseTime.length; i++) {
-        const pauseStart = new Date(timesheet.pauseTime[i]).getTime();
-        const pauseEnd = timesheet.resumeTime[i] 
-          ? new Date(timesheet.resumeTime[i]).getTime() 
-          : (timesheet.status === 'paused' ? Date.now() : pauseStart);
-        
-        pauseTime += pauseEnd - pauseStart;
-      }
-      
-      totalMs -= pauseTime;
-      
-      if (totalMs > 0) {
-        totalMinutes += totalMs / (1000 * 60);
-      }
-    });
-    
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = Math.round(totalMinutes % 60);
-    
-    return `${hours}h ${minutes}m`;
-  };
+  // Contar total de pausas de hoy
+  const totalPauses = todayTimesheets.reduce((total, timesheet) => {
+    return total + (timesheet.pauses?.length || 0);
+  }, 0);
 
   return (
-    <div className="flex h-screen w-full bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header superior con título */}
-        <header className="bg-[#A4CB6A] text-white py-1 px-4 text-center">
-          <h1 className="text-lg font-semibold">APLIUM APLICACIONES TELEMATICAS SL</h1>
+      <div className="flex-1 overflow-auto">
+        <header className="bg-white shadow">
+          <div className="mx-auto px-4 py-6 md:px-8">
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">{formattedDate}</p>
+          </div>
         </header>
         
-        <main className="flex-1 overflow-auto p-6">
-          {/* Sección del perfil del empleado */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <div className="flex-1"></div>
-            <div className="flex flex-col items-center">
-              <div className="w-24 h-24 bg-[#A4CB6A] rounded-full flex items-center justify-center text-white overflow-hidden">
-                {selectedEmployee ? (
-                  <img 
-                    src={employees.find(e => e.id === selectedEmployee)?.avatar || '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png'} 
-                    alt="Avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center">
-                    <div className="text-xl font-bold">APLIUM</div>
-                    <div className="text-xs">Francesc Gateu</div>
+        <main className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Resumen de actividad</h2>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
+          </div>
+          
+          {/* Estadísticas principales */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-blue-500" />
+                    Total horas trabajadas
                   </div>
-                )}
-              </div>
-              <h2 className="mt-2 text-lg font-semibold">
-                {selectedEmployee 
-                  ? employees.find(e => e.id === selectedEmployee)?.name 
-                  : 'Francesc Gateu'}
-              </h2>
-              <p className="text-gray-500">{formattedDateRange}</p>
-            </div>
-            <div className="flex-1 flex justify-end space-x-2 mt-4 md:mt-0">
-              <Button
-                onClick={downloadCSV}
-                variant="outline"
-                className="bg-blue-500 text-white hover:bg-blue-600"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Descargar Horas en CSV
-              </Button>
-              <Button
-                onClick={downloadPDF}
-                variant="outline"
-                className="bg-green-500 text-white hover:bg-green-600"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Descargar PDF
-              </Button>
-            </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{hoursDisplay}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-amber-500" />
+                    Total pausas
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{totalPauses}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-green-500" />
+                    Empleados activos
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{activeEmployees}</div>
+              </CardContent>
+            </Card>
           </div>
           
-          {/* Tarjetas de resumen */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500">Total horas trabajadas</p>
-                  <p className="text-2xl font-semibold">{calculateTotalHours()}</p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <Clock className="h-5 w-5 text-blue-500" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500">Total pausas</p>
-                  <p className="text-2xl font-semibold">{calculateTotalPauses()}</p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-full">
-                  <PauseCircle className="h-5 w-5 text-yellow-500" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500">Empleados activos</p>
-                  <p className="text-2xl font-semibold">{uniqueEmployees.length}</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Users className="h-5 w-5 text-green-500" />
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Filtros y opciones de visualización */}
-          <div className="mb-6">
-            <div className="flex items-center mb-4 space-x-2">
-              <p className="text-gray-600">Ver horas por:</p>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => setActivePeriod('daily')} 
-                  className={`px-3 py-1 rounded-full ${activePeriod === 'daily' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-blue-500 hover:bg-blue-50'}`}
-                >
-                  Hoy
-                </button>
-                <span className="text-gray-400">|</span>
-                <button 
-                  onClick={() => setActivePeriod('weekly')} 
-                  className={`px-3 py-1 rounded-full ${activePeriod === 'weekly' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-blue-500 hover:bg-blue-50'}`}
-                >
-                  Semanales
-                </button>
-                <span className="text-gray-400">|</span>
-                <button 
-                  onClick={() => setActivePeriod('monthly')} 
-                  className={`px-3 py-1 rounded-full ${activePeriod === 'monthly' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-blue-500 hover:bg-blue-50'}`}
-                >
-                  Mensuales
-                </button>
-              </div>
-              <div className="flex-1 flex justify-end">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changePeriod('prev')}
-                  >
-                    &#8592; Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changePeriod('next')}
-                  >
-                    Siguiente &#8594;
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {/* Selector de fecha */}
-              <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium">Fecha</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Seleccionar fecha"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                      locale={es}
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {/* Selector de empleado */}
-              <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium">Empleado</label>
-                <select
-                  value={selectedEmployee}
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="">Todos los empleados</option>
-                  {uniqueEmployees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Botón de búsqueda */}
-              <div className="flex items-end">
-                <Button className="bg-[#A4CB6A] hover:bg-[#8FB75A]">
-                  Elegir
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Tabla de registros */}
-          <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-            <TimesheetTable 
-              timesheets={filteredTimesheets} 
-              viewMode={activePeriod}
+          {/* Mapa de actividad de empleados */}
+          <div className="mb-8">
+            <EmployeesActivityMap 
+              employees={employees} 
+              title="Localización de empleados"
             />
+          </div>
+          
+          {/* Sección para más contenido */}
+          <div className="mb-8">
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle>Filtros de visualización</CardTitle>
+                <CardDescription>
+                  Selecciona cómo quieres ver los datos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant={selectedView === 'daily' ? 'default' : 'outline'}
+                    onClick={() => setSelectedView('daily')}
+                  >
+                    Hoy
+                  </Button>
+                  <Button 
+                    variant={selectedView === 'weekly' ? 'default' : 'outline'}
+                    onClick={() => setSelectedView('weekly')}
+                  >
+                    Semanales
+                  </Button>
+                  <Button 
+                    variant={selectedView === 'monthly' ? 'default' : 'outline'}
+                    onClick={() => setSelectedView('monthly')}
+                  >
+                    Mensuales
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>

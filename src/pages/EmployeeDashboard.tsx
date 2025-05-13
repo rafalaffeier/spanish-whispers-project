@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import TimesheetControl from '@/components/TimesheetControl';
-import { Settings, MapPin, AlertCircle } from 'lucide-react';
+import { Settings, MapPin, AlertCircle, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import ProfileEditDialog from '@/components/profile/ProfileEditDialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { clearAuth } from '@/services/apiConfig';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -90,6 +91,8 @@ const EmployeeDashboard = () => {
 
   const handleLogout = () => {
     console.log("[EmployeeDashboard] Logging out");
+    // Limpiar el estado de autenticación por completo
+    clearAuth();
     setCurrentEmployee(null);
     navigate('/login', { replace: true });
   };
@@ -110,6 +113,7 @@ const EmployeeDashboard = () => {
             <Settings className="h-6 w-6 text-gray-500" />
           </Button>
           <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
             Cerrar sesión
           </Button>
         </div>

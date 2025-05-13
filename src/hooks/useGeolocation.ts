@@ -20,12 +20,19 @@ export const useGeolocation = () => {
       
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log("[Geolocation] Posición obtenida:", position.coords.latitude, position.coords.longitude);
           setLocation(position);
           setLoading(false);
           resolve(position);
         },
         (err) => {
-          const errorMsg = `Error al obtener la ubicación: ${err.message}`;
+          const errorMessages: Record<number, string> = {
+            1: "Permiso de ubicación denegado. Por favor, habilita la ubicación en tu navegador.",
+            2: "No se pudo obtener la ubicación. Verifica tu conexión o GPS.",
+            3: "Se agotó el tiempo para obtener la ubicación. Inténtalo de nuevo."
+          };
+          
+          const errorMsg = errorMessages[err.code] || `Error al obtener la ubicación: ${err.message}`;
           console.warn(errorMsg, err.code);
           setError(errorMsg);
           setLoading(false);
@@ -42,3 +49,5 @@ export const useGeolocation = () => {
 
   return { location, error, loading, getLocation };
 };
+
+export default useGeolocation;
