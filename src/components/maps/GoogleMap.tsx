@@ -14,13 +14,7 @@ interface GoogleMapProps {
   className?: string;
 }
 
-// Declarar la variable global de Google Maps
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
-}
+// Declarar la variable global de Google Maps ya está en vite-env.d.ts
 
 const GoogleMap: React.FC<GoogleMapProps> = ({
   center = { lat: 40.416775, lng: -3.703790 }, // Default: Madrid, España
