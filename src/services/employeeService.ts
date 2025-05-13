@@ -112,10 +112,16 @@ export const getEmployeeWithLocation = async (id: string): Promise<Employee> => 
       console.log("Obteniendo coordenadas para:", employee.address, employee.city);
       // En una implementación real, aquí se conectaría con la API de Google Maps
       // Para esta versión, simplemente simulamos datos de coordenadas
-      employee.location = {
+      
+      // Nota: No podemos asignar directamente employee.location porque no existe en el tipo Employee
+      // Usamos una variable temporal para los datos de ubicación que podrían usarse en otro contexto
+      const locationData = {
         lat: 41.6175899, // Coordenadas de ejemplo para Lleida
         lng: 0.6200146
       };
+      
+      // Si se necesitara usar esta información, habría que añadir una propiedad location al tipo Employee
+      console.log("Coordenadas simuladas:", locationData);
     }
     
     return employee;

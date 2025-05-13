@@ -1,4 +1,3 @@
-
 // Definición de tipos para la aplicación de control de jornada
 
 // Tipo para representar un empleado
@@ -25,6 +24,12 @@ export interface Employee {
   companyAddress?: string;
   zipCode?: string;
   phone?: string;
+  
+  // Coordenadas opcionales del empleado (para ubicación)
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 // Tipo para representar una jornada laboral
