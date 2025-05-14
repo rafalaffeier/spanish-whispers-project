@@ -46,43 +46,8 @@ function validateAuthToken($token) {
     }
 }
 
-/**
- * Get the authenticated user from the request
- * 
- * @return int|false The user ID if authenticated, false otherwise
- */
-function getAuthenticatedUser() {
-    // Get Authorization header
-    $headers = apache_request_headers();
-    if (!isset($headers['Authorization'])) {
-        error_log("AUTH: No Authorization header found");
-        // For backwards compatibility, try using the token directly from GET/POST/ID
-        if (isset($_GET['token'])) {
-            error_log("AUTH: Using token from query parameter");
-            return $_GET['token'];
-        } else if (isset($_POST['token'])) {
-            error_log("AUTH: Using token from POST data");
-            return $_POST['token'];
-        } else {
-            return false;
-        }
-    }
-    
-    $authHeader = $headers['Authorization'];
-    
-    // Check for Bearer token
-    if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-        $token = $matches[1];
-        error_log("AUTH: Found Bearer token: " . substr($token, 0, 10) . "...");
-        
-        // For simplicity in this app, we're using the ID directly as the token
-        // For better security, use validateAuthToken instead
-        return $token;
-    }
-    
-    error_log("AUTH: Invalid Authorization header format");
-    return false;
-}
+// *** ELIMINADO: función duplicada getAuthenticatedUser() aquí ***
+
 
 /**
  * Sanitize and validate email
@@ -105,3 +70,4 @@ function checkPasswordStrength($password) {
     // At least 8 characters
     return strlen($password) >= 8;
 }
+
