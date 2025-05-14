@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/AdminSidebar';
@@ -8,7 +7,7 @@ import { es } from 'date-fns/locale';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Download, Users } from 'lucide-react';
-import EmployeesActivityMap from '@/components/maps/EmployeesActivityMap';
+// import EmployeesActivityMap from '@/components/maps/EmployeesActivityMap';
 import DebugPanel from '@/components/debug/DebugPanel';
 
 const AdminDashboard = () => {
@@ -183,8 +182,8 @@ const AdminDashboard = () => {
             </Card>
           </div>
           
-          {/* Mapa de actividad de empleados */}
-          <div className="mb-8">
+          {/* Mapa de actividad de empleados REMOVIDO TEMPORALMENTE */}
+          {/* <div className="mb-8">
             <EmployeesActivityMap 
               employees={employees} 
               title="Localización de empleados"
@@ -192,7 +191,7 @@ const AdminDashboard = () => {
                 addLog("Mapa de actividad inicializado");
               }}
             />
-          </div>
+          </div> */}
           
           {/* Sección para más contenido */}
           <div className="mb-8">
