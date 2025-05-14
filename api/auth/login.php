@@ -86,13 +86,19 @@ function handleLogin() {
             $entityId = $entidad['id'];
         }
         
-        // Crear respuesta adaptada al frontend (key: employee, campos: name, isCompany, role)
+        // Crear respuesta ADAPTADA A LO QUE ESPERA EL FRONT
+        // response {
+        //   token: usuario['id'],
+        //   employee: {
+        //      id, userId, name, role, isCompany
+        //   }
+        // }
         $respuesta = [
             'token' => $usuario['id'],
             'employee' => [
-                'id' => $entityId,
+                'id' => $entityId ?? '', // id de la entidad (empresa o empleado)
                 'userId' => $usuario['id'],
-                'name' => $nombreEntidad ?? 'Usuario',
+                'name' => $nombreEntidad ?? $usuario['email'],
                 'role' => $usuario['rol_nombre'], // 'empleador' o 'empleado'
                 'isCompany' => $esEmpleador
             ]
@@ -105,7 +111,10 @@ function handleLogin() {
         $stmt = $db->prepare('UPDATE users SET ultimo_acceso = NOW() WHERE id = ?');
         $stmt->execute([$usuario['id']]);
         
-        response($respuesta);
+        // Devolver el JSON esperado
+        header('Content-Type: application/json');
+        echo json_encode($respuesta);
+        exit;
     } catch (PDOException $e) {
         error_log("Error en login: " . $e->getMessage());
         http_response_code(500);
