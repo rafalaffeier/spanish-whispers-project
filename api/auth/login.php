@@ -77,21 +77,24 @@ function handleLogin() {
         // Mapear datos para la respuesta
         $nombreEntidad = null;
         $entityId = null;
-        
         if ($entidad) {
-            $nombreEntidad = $entidad['nombre'] ?? ($entidad['nombre'] . ' ' . $entidad['apellidos']);
+            if ($esEmpleador) {
+                $nombreEntidad = $entidad['nombre'];
+            } else {
+                $nombreEntidad = trim(($entidad['nombre'] ?? '') . ' ' . ($entidad['apellidos'] ?? ''));
+            }
             $entityId = $entidad['id'];
         }
         
-        // Crear respuesta
+        // Crear respuesta adaptada al frontend (key: employee, campos: name, isCompany, role)
         $respuesta = [
-            'token' => $usuario['id'], // Usar ID como token simple
-            'empleado' => [
+            'token' => $usuario['id'],
+            'employee' => [
                 'id' => $entityId,
                 'userId' => $usuario['id'],
-                'nombre' => $nombreEntidad ?? 'Usuario',
-                'rol' => $usuario['rol_nombre'], // Solo será 'empleador' o 'empleado'
-                'esEmpresa' => $esEmpleador
+                'name' => $nombreEntidad ?? 'Usuario',
+                'role' => $usuario['rol_nombre'], // 'empleador' o 'empleado'
+                'isCompany' => $esEmpleador
             ]
         ];
         
