@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,9 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
-import { useGeolocation } from '@/hooks/useGeolocation';
-import { MapPin } from 'lucide-react';
-import GoogleMap from '@/components/maps/GoogleMap';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -17,18 +15,14 @@ interface ProfileEditDialogProps {
 
 const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChange }) => {
   const { currentEmployee, setCurrentEmployee } = useTimesheet();
-  const { getLocation } = useGeolocation();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
-    avatar: '',
-    coordinates: {
-      lat: 0,
-      lng: 0
-    }
+    avatar: ''
+    // Eliminado: coordinates
   });
 
   // Cargar datos del empleado actual cuando se abre el diálogo
@@ -39,8 +33,8 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
         email: currentEmployee.email || '',
         phone: currentEmployee.phone || '',
         address: currentEmployee.address || '',
-        avatar: currentEmployee.avatar || '',
-        coordinates: currentEmployee.coordinates || { lat: 0, lng: 0 }
+        avatar: currentEmployee.avatar || ''
+        // Eliminado: coordinates
       });
     }
   }, [open, currentEmployee]);
@@ -52,9 +46,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentEmployee) return;
-    
+
     // Actualizar el empleado en el contexto
     setCurrentEmployee({
       ...currentEmployee,
@@ -63,46 +57,16 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
       phone: formData.phone,
       address: formData.address,
       avatar: formData.avatar,
-      coordinates: formData.coordinates
+      // Eliminado: coordinates
     });
-    
+
     toast({
       title: "Perfil actualizado",
       description: "Los cambios han sido guardados correctamente."
     });
-    
+
     onOpenChange(false);
   };
-
-  const handleGetLocation = async () => {
-    try {
-      const position = await getLocation();
-      setFormData(prev => ({
-        ...prev,
-        coordinates: {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
-      }));
-      
-      toast({
-        title: "Ubicación actualizada",
-        description: "Se ha actualizado tu ubicación actual."
-      });
-    } catch (error) {
-      toast({
-        title: "Error de ubicación",
-        description: error instanceof Error ? error.message : "No se pudo obtener la ubicación",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const hasCoordinates = formData.coordinates && 
-    typeof formData.coordinates.lat === 'number' && 
-    formData.coordinates.lat !== 0 &&
-    typeof formData.coordinates.lng === 'number' &&
-    formData.coordinates.lng !== 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,7 +74,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
         <DialogHeader>
           <DialogTitle>Editar perfil</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {/* Avatar */}
           <div className="flex flex-col items-center space-y-2">
@@ -129,7 +92,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
               />
             </div>
           </div>
-          
+
           {/* Datos personales */}
           <div className="grid w-full gap-4">
             <div className="grid w-full items-center gap-1.5">
@@ -154,7 +117,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 required
               />
             </div>
-            
+
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="phone">Teléfono</Label>
               <Input
@@ -164,7 +127,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-            
+
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="address">Dirección</Label>
               <Input
@@ -174,48 +137,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-            
-            {/* Ubicación */}
-            <div className="grid w-full items-center gap-1.5">
-              <div className="flex justify-between items-center">
-                <Label>Ubicación actual</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleGetLocation}
-                  className="flex items-center"
-                >
-                  <MapPin className="h-4 w-4 mr-1" />
-                  Actualizar ubicación
-                </Button>
-              </div>
-              
-              {hasCoordinates ? (
-                <div className="mt-2 h-[150px] rounded-md overflow-hidden">
-                  <GoogleMap 
-                    center={formData.coordinates}
-                    zoom={15}
-                    markers={[{position: formData.coordinates}]}
-                    height="150px"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-[150px] bg-muted/20 rounded-md">
-                  <p className="text-muted-foreground text-center">
-                    No hay datos de ubicación disponibles
-                  </p>
-                </div>
-              )}
-              
-              <div className="text-xs text-muted-foreground mt-1">
-                {hasCoordinates ? (
-                  <span>Lat: {formData.coordinates.lat.toFixed(6)}, Lng: {formData.coordinates.lng.toFixed(6)}</span>
-                ) : (
-                  <span>Haz clic en "Actualizar ubicación" para obtener tu posición actual</span>
-                )}
-              </div>
-            </div>
+            {/* Eliminada toda la sección de ubicación/mapa */}
           </div>
           
           <DialogFooter>
@@ -231,3 +153,4 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 };
 
 export default ProfileEditDialog;
+
