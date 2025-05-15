@@ -1,4 +1,3 @@
-
 <?php
 // Login functionality
 
@@ -41,9 +40,7 @@ function handleLogin() {
         
         // Verificar contraseña
         if (!password_verify($data['password'], $usuario['password'])) {
-            // Log para depuración
             error_log("Contraseña incorrecta para {$data['email']}");
-            
             http_response_code(401);
             echo json_encode(['error' => 'Contraseña incorrecta']);
             exit;
@@ -52,69 +49,52 @@ function handleLogin() {
         // Determinar si es empleador o empleado
         $esEmpleador = $usuario['rol_nombre'] === 'empleador'; 
         
+        // Inicializar el arreglo de entidad
+        $entidad = [];
+
         // Obtener información adicional según tipo de usuario
         if ($esEmpleador) {
             $stmt = $db->prepare('SELECT * FROM empresas WHERE user_id = ?');
             $stmt->execute([$usuario['id']]);
-            $entidad = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$entidad) {
-                error_log("Usuario empleador sin entidad asociada: {$usuario['id']}");
-            }
+            $entidad = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         } else {
             $stmt = $db->prepare('SELECT e.*, emp.nombre AS nombre_empresa 
                                  FROM empleados e 
                                  LEFT JOIN empresas emp ON e.empresa_id = emp.id 
                                  WHERE e.user_id = ?');
             $stmt->execute([$usuario['id']]);
-            $entidad = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$entidad) {
-                error_log("Usuario empleado sin entidad asociada: {$usuario['id']}");
-            }
+            $entidad = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         }
-        
+
         // Mapear datos para la respuesta
         $nombreEntidad = null;
         $entityId = null;
-        if ($entidad) {
-            if ($esEmpleador) {
-                $nombreEntidad = $entidad['nombre'];
-            } else {
-                $nombreEntidad = trim(($entidad['nombre'] ?? '') . ' ' . ($entidad['apellidos'] ?? ''));
-            }
-            $entityId = $entidad['id'];
+
+        if (!empty($entidad)) {
+            $nombreEntidad = $entidad['nombre'] ?? ($entidad['nombre'] . ' ' . $entidad['apellidos']);
+            $entityId = $entidad['id'] ?? null;
         }
-        
-        // Crear respuesta ADAPTADA A LO QUE ESPERA EL FRONT
-        // response {
-        //   token: usuario['id'],
-        //   employee: {
-        //      id, userId, name, role, isCompany
-        //   }
-        // }
+
+        // Crear respuesta
         $respuesta = [
-            'token' => $usuario['id'],
-            'employee' => [
-                'id' => $entityId ?? '', // id de la entidad (empresa o empleado)
+            'token' => $usuario['id'], // Usar ID como token simple
+            'empleado' => [
+                'id' => $entityId ?? $usuario['id'],
                 'userId' => $usuario['id'],
-                'name' => $nombreEntidad ?? $usuario['email'],
-                'role' => $usuario['rol_nombre'], // 'empleador' o 'empleado'
-                'isCompany' => $esEmpleador
+                'nombre' => $nombreEntidad ?? 'Usuario',
+                'rol' => $usuario['rol_nombre'], // Solo será 'empleador' o 'empleado'
+                'esEmpresa' => $esEmpleador
             ]
         ];
-        
+
         // Registrar acción
         logAction($usuario['id'], 'login', 'Login exitoso');
-        
+
         // Actualizar último acceso
         $stmt = $db->prepare('UPDATE users SET ultimo_acceso = NOW() WHERE id = ?');
         $stmt->execute([$usuario['id']]);
         
-        // Devolver el JSON esperado
-        header('Content-Type: application/json');
-        echo json_encode($respuesta);
-        exit;
+        response($respuesta);
     } catch (PDOException $e) {
         error_log("Error en login: " . $e->getMessage());
         http_response_code(500);
@@ -122,3 +102,4 @@ function handleLogin() {
         exit;
     }
 }
+?>
