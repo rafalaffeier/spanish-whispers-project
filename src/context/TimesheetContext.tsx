@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TimesheetEntry, Employee } from '@/types/timesheet';
 import * as api from '@/services/api';
@@ -34,36 +33,36 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const token = localStorage.getItem('authToken');
         if (!token) {
           console.log('[TimesheetContext] No auth token found');
-          // Sin token, no hay empleado autenticado
           setCurrentEmployee(null);
           setLoading(false);
           return;
         }
-        
-        console.log('[TimesheetContext] Auth token found, checking for employee data');
-        
+
         // Intentar cargar el empleado actual desde localStorage
         const savedEmployee = localStorage.getItem('currentEmployee');
         if (savedEmployee) {
           try {
             const employee = JSON.parse(savedEmployee);
             console.log('[TimesheetContext] Found employee in localStorage:', employee);
+
+            // Asegurarse de tener employee.id disponible para jornadas
+            if (!employee.id && employee.employeeId) {
+              employee.id = employee.employeeId;
+            }
+
             setCurrentEmployee(employee);
-            
+
             // Si tenemos un empleado, cargar sus datos
             if (employee && employee.id) {
               await loadEmployeeData(employee.id);
             }
           } catch (e) {
             console.error('[TimesheetContext] Error parsing currentEmployee from localStorage:', e);
-            // Si hay un error al parsear, limpiar todo
             localStorage.removeItem('currentEmployee');
             localStorage.removeItem('authToken');
             setCurrentEmployee(null);
           }
         } else {
-          console.log('[TimesheetContext] No employee found in localStorage');
-          // Si hay token pero no hay empleado, limpiar el token
           localStorage.removeItem('authToken');
           setCurrentEmployee(null);
         }
@@ -92,15 +91,17 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updateCurrentEmployee = (employee: Employee | null) => {
     console.log('[TimesheetContext] Updating current employee:', employee);
     if (employee) {
-      localStorage.setItem('currentEmployee', JSON.stringify(employee));
-      setCurrentEmployee(employee);
-      // Cuando cambia el empleado, cargar sus datos
-      if (employee.id) {
-        loadEmployeeData(employee.id);
+      // Guardar tanto userId como id (employeeId)
+      const employeeToSave = { ...employee };
+      if (!employeeToSave.id && employeeToSave.employeeId) {
+        employeeToSave.id = employeeToSave.employeeId;
+      }
+      localStorage.setItem('currentEmployee', JSON.stringify(employeeToSave));
+      setCurrentEmployee(employeeToSave);
+      if (employeeToSave.id) {
+        loadEmployeeData(employeeToSave.id);
       }
     } else {
-      // Si se está cerrando sesión, limpiar todo
-      console.log('[TimesheetContext] Clearing employee data (logout)');
       localStorage.removeItem('currentEmployee');
       localStorage.removeItem('authToken');
       setCurrentEmployee(null);
@@ -114,18 +115,16 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       console.log('[TimesheetContext] Loading data for employee:', employeeId);
       setLoading(true);
-      
-      // Cargar timesheets del empleado
+
+      // Cargar timesheets del empleado **usando el id correcto**
       const employeeTimesheets = await api.getTimesheetsByEmployee(employeeId);
       console.log('[TimesheetContext] Loaded timesheets:', employeeTimesheets);
       setTimesheets(employeeTimesheets);
-      
-      // También podríamos cargar otros empleados si el usuario actual es empleador
+
       if (currentEmployee?.role === 'empleador') {
         const allEmployees = await api.getEmployees();
         setEmployees(allEmployees);
       } else {
-        // Si no es empleador, solo mostrar el empleado actual
         if (currentEmployee) {
           setEmployees([currentEmployee]);
         }
