@@ -1,4 +1,3 @@
-
 <?php
 // Configuración global de la API
 
@@ -33,31 +32,38 @@ function getConnection() {
     }
 }
 
-// Función para verificar la autenticación del usuario
+// FUNCIÓN ACTUALIZADA: aceptar el token como id simple DE MANERA EXPLÍCITA (solución rápida)
 function getAuthenticatedUser() {
-    $headers = apache_request_headers();
-    if (!isset($headers['Authorization'])) {
+    // Permitir compatibilidad con varios entornos de servidor PHP
+    if (function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+    } else {
+        $headers = [];
+        foreach ($_SERVER as $key => $value) {
+            if (substr($key, 0, 5) == 'HTTP_') {
+                $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
+                $headers[$header] = $value;
+            }
+        }
+    }
+    // Soportar ambos: 'Authorization' y 'authorization'
+    $authorization = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+    if (!$authorization) {
         return false;
     }
-    
-    $authHeader = $headers['Authorization'];
-    if (strpos($authHeader, 'Bearer ') !== 0) {
+    if (strpos($authorization, 'Bearer ') !== 0) {
         return false;
     }
-    
-    $token = substr($authHeader, 7);
-    
-    // Por simplicidad, estamos usando el ID como token 
-    // En un sistema real, se usaría JWT o similar
+    $token = substr($authorization, 7);
+    // ---------------- Solución rápida: token ES EL USER ID directamente ----------------
     try {
         $db = getConnection();
         $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
-        
+
         if ($stmt->rowCount() === 1) {
             return $token; // ID del usuario autenticado
         }
-        
         return false;
     } catch (PDOException $e) {
         error_log('Error de autenticación: ' . $e->getMessage());
