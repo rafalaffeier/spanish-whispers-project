@@ -3,22 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
 import TimesheetControl from '@/components/TimesheetControl';
-import { Settings, MapPin, AlertCircle, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import ProfileEditDialog from '@/components/profile/ProfileEditDialog';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { clearAuth } from '@/services/apiConfig';
 import DebugPanel from '@/components/debug/DebugPanel';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet, loading } = useTimesheet();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
   const [debugData, setDebugData] = useState<Record<string, any>>({});
-  
+
   // Función de logging para depuración
   const addLog = (message: string) => {
     console.log(`[EmployeeDashboard] ${message}`);
@@ -28,61 +25,12 @@ const EmployeeDashboard = () => {
       timestamp: new Date().toISOString()
     }));
   };
-  
-  // Verificar geolocalización
-  useEffect(() => {
-    const checkGeolocation = () => {
-      if (!navigator.geolocation) {
-        setGeoError("Tu navegador no soporta la geolocalización. Esto es necesario para registrar tu jornada.");
-        addLog("Geolocation not supported");
-        return;
-      }
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // Geolocalización permitida
-          setGeoError(null);
-          addLog(`Geolocation permitted: ${position.coords.latitude}, ${position.coords.longitude}`);
-          setDebugData(prev => ({
-            ...prev,
-            location: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              accuracy: position.coords.accuracy
-            }
-          }));
-        },
-        (error) => {
-          console.warn("Error de geolocalización:", error);
-          addLog(`Geolocation error: ${error.code} - ${error.message}`);
-          
-          // Mensajes de error específicos según el código de error
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              setGeoError("Necesitas permitir el acceso a tu ubicación para poder registrar tu jornada correctamente.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              setGeoError("La información de tu ubicación no está disponible en este momento.");
-              break;
-            case error.TIMEOUT:
-              setGeoError("Se agotó el tiempo para obtener tu ubicación. Por favor, inténtalo de nuevo.");
-              break;
-            default:
-              setGeoError("Error desconocido al acceder a tu ubicación.");
-              break;
-          }
-        }
-      );
-    };
-    
-    checkGeolocation();
-  }, []);
-  
+
   // Verificar autenticación al cargar
   useEffect(() => {
     addLog(`Component mounted, current employee: ${JSON.stringify(currentEmployee)}`);
     addLog(`Loading state: ${loading}`);
-    
+
     // Actualizar datos de depuración
     setDebugData(prev => ({
       ...prev,
@@ -90,7 +38,7 @@ const EmployeeDashboard = () => {
       loading,
       authState: localStorage.getItem('authToken') ? 'active' : 'inactive'
     }));
-    
+
     const checkAuthentication = async () => {
       // Si el context ya terminó de cargar y no hay empleado, redirigir
       if (!loading && !currentEmployee) {
@@ -100,7 +48,7 @@ const EmployeeDashboard = () => {
         addLog(`Authentication verified, employee: ${currentEmployee.name}`);
       }
     };
-    
+
     checkAuthentication();
   }, [currentEmployee, navigate, loading]);
 
@@ -127,7 +75,7 @@ const EmployeeDashboard = () => {
   const handleLogout = () => {
     addLog("Logging out");
     // Limpiar el estado de autenticación por completo
-    clearAuth();
+    localStorage.removeItem('authToken');
     setCurrentEmployee(null);
     navigate('/login', { replace: true });
   };
@@ -161,17 +109,6 @@ const EmployeeDashboard = () => {
       </div>
 
       <div className="container max-w-md mx-auto px-4 pb-12">
-        {/* Alerta de geolocalización */}
-        {geoError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Acceso a ubicación requerido</AlertTitle>
-            <AlertDescription>
-              {geoError}
-            </AlertDescription>
-          </Alert>
-        )}
-        
         {/* Perfil del empleado */}
         <div className="flex flex-col items-center mb-6">
           <Avatar className="h-32 w-32 mb-4">
@@ -202,15 +139,6 @@ const EmployeeDashboard = () => {
           }}
           existingTimesheet={currentTimesheet}
         />
-        
-        {/* Nota sobre geolocalización */}
-        <div className="mt-8 text-center text-sm text-gray-500 flex flex-col items-center">
-          <div className="flex items-center justify-center mb-2">
-            <MapPin className="h-4 w-4 mr-1" />
-            <p>Tu ubicación es necesaria para registrar la jornada</p>
-          </div>
-          <p>Se utiliza Google Maps para visualizar la ubicación</p>
-        </div>
       </div>
 
       {/* Diálogo de edición de perfil */}
@@ -236,3 +164,4 @@ const EmployeeDashboard = () => {
 };
 
 export default EmployeeDashboard;
+
