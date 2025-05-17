@@ -45,10 +45,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const employee = JSON.parse(savedEmployee);
             console.log('[TimesheetContext] Found employee in localStorage:', employee);
 
-            // Asegurarse de tener employee.id disponible para jornadas
-            if (!employee.id && employee.employeeId) {
-              employee.id = employee.employeeId;
-            }
+            // No es necesario normalizar employeeId (usar SIEMPRE id de Employee)
 
             setCurrentEmployee(employee);
 
@@ -73,7 +70,6 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           description: "No se pudieron cargar los datos. Por favor, inténtalo de nuevo.",
           variant: "destructive"
         });
-        // En caso de error, mejor limpiar el estado de autenticación
         localStorage.removeItem('currentEmployee');
         localStorage.removeItem('authToken');
         setCurrentEmployee(null);
@@ -83,7 +79,6 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     initializeData();
-    // Initialize auth token from localStorage
     api.initializeAuth();
   }, []);
 
@@ -91,15 +86,11 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updateCurrentEmployee = (employee: Employee | null) => {
     console.log('[TimesheetContext] Updating current employee:', employee);
     if (employee) {
-      // Guardar tanto userId como id (employeeId)
-      const employeeToSave = { ...employee };
-      if (!employeeToSave.id && employeeToSave.employeeId) {
-        employeeToSave.id = employeeToSave.employeeId;
-      }
-      localStorage.setItem('currentEmployee', JSON.stringify(employeeToSave));
-      setCurrentEmployee(employeeToSave);
-      if (employeeToSave.id) {
-        loadEmployeeData(employeeToSave.id);
+      // No modificar ni inventar employeeId aquí
+      localStorage.setItem('currentEmployee', JSON.stringify(employee));
+      setCurrentEmployee(employee);
+      if (employee.id) {
+        loadEmployeeData(employee.id);
       }
     } else {
       localStorage.removeItem('currentEmployee');
@@ -116,7 +107,7 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log('[TimesheetContext] Loading data for employee:', employeeId);
       setLoading(true);
 
-      // Cargar timesheets del empleado **usando el id correcto**
+      // Cargar timesheets del empleado usando el id correcto
       const employeeTimesheets = await api.getTimesheetsByEmployee(employeeId);
       console.log('[TimesheetContext] Loaded timesheets:', employeeTimesheets);
       setTimesheets(employeeTimesheets);
