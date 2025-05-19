@@ -20,6 +20,21 @@ interface ProfileEditDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const getEmployeeEmail = (currentEmployee: any): string => {
+  // Intentar sacar email directo del contexto, si existe
+  if (currentEmployee?.email) return currentEmployee.email;
+  // Si no, mirar en localStorage (por si está guardado allí)
+  try {
+    const raw = localStorage.getItem('currentEmployee');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.email) return parsed.email;
+    }
+  } catch (e) {}
+  // Si no lo encuentra, devolver string vacío
+  return "";
+};
+
 const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChange }) => {
   const { currentEmployee, setCurrentEmployee } = useTimesheet();
 
@@ -46,7 +61,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
       setFormData({
         name: currentEmployee.name || "",
         lastName: currentEmployee.lastName || "",
-        email: currentEmployee.email || "",
+        email: getEmployeeEmail(currentEmployee), // <--- Esto coge siempre el email correcto
         dni: currentEmployee.dni || "",
         department: currentEmployee.department || "",
         position: currentEmployee.position || "",
