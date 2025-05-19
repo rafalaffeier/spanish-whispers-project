@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
+import { updateEmployee } from '@/services/employeeService';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -25,7 +26,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
     // Eliminado: coordinates
   });
 
-  // Cargar datos del empleado actual cuando se abre el diálogo
   useEffect(() => {
     if (open && currentEmployee) {
       setFormData({
@@ -34,7 +34,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
         phone: currentEmployee.phone || '',
         address: currentEmployee.address || '',
         avatar: currentEmployee.avatar || ''
-        // Eliminado: coordinates
       });
     }
   }, [open, currentEmployee]);
@@ -44,28 +43,45 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentEmployee) return;
 
-    // Actualizar el empleado en el contexto
-    setCurrentEmployee({
-      ...currentEmployee,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      avatar: formData.avatar,
-      // Eliminado: coordinates
-    });
+    // Actualización REAL en backend
+    try {
+      await updateEmployee(currentEmployee.id, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        avatar: formData.avatar
+      });
 
-    toast({
-      title: "Perfil actualizado",
-      description: "Los cambios han sido guardados correctamente."
-    });
+      // Actualizar el empleado en el contexto
+      setCurrentEmployee({
+        ...currentEmployee,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        avatar: formData.avatar
+      });
 
-    onOpenChange(false);
+      toast({
+        title: "Perfil actualizado",
+        description: "Los cambios han sido guardados correctamente."
+      });
+
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el perfil en la base de datos.",
+        variant: "destructive"
+      });
+      console.error("Error updating employee profile in DB:", err);
+    }
   };
 
   return (
@@ -137,7 +153,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-            {/* Eliminada toda la sección de ubicación/mapa */}
           </div>
           
           <DialogFooter>
@@ -153,4 +168,3 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 };
 
 export default ProfileEditDialog;
-
