@@ -16,7 +16,7 @@ const EmployeeDashboard = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [debugData, setDebugData] = useState<Record<string, any>>({});
 
-  // Función de logging para depuración
+  // Solo para logs durante eventos importantes, nunca en el body principal (render)
   const addLog = (message: string) => {
     console.log(`[EmployeeDashboard] ${message}`);
     setDebugData(prev => ({
@@ -50,6 +50,7 @@ const EmployeeDashboard = () => {
     };
 
     checkAuthentication();
+    // eslint-disable-next-line
   }, [currentEmployee, navigate, loading]);
 
   // Mostrar pantalla de carga mientras se verifica la autenticación
@@ -84,7 +85,9 @@ const EmployeeDashboard = () => {
   const today = new Date();
   const formattedDate = format(today, "dd-MM-yyyy");
 
-  addLog(`Rendering dashboard for: ${currentEmployee.name}`);
+  // --- EXPLICACIÓN ---
+  // Eliminamos TODOS los addLog fuera de hooks/eventos, pues causan bucles infinitos.
+  // --------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-gray-50">
