@@ -32,9 +32,11 @@ function getConnection() {
     }
 }
 
-// FUNCIÓN ACTUALIZADA: aceptar el token como id simple DE MANERA EXPLÍCITA (solución rápida)
+require_once __DIR__ . '/auth/utils.php'; // Asegura tener accesso a validateAuthToken()
+
+// FUNCIÓN ACTUALIZADA: aceptar token como id directo O como token generado (JSON base64 con user_id)
 function getAuthenticatedUser() {
-    // Permitir compatibilidad con varios entornos de servidor PHP
+    // Obtener headers de Authorization de forma cross-server
     if (function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
     } else {
@@ -46,7 +48,6 @@ function getAuthenticatedUser() {
             }
         }
     }
-    // Soportar ambos: 'Authorization' y 'authorization'
     $authorization = $headers['Authorization'] ?? $headers['authorization'] ?? null;
     if (!$authorization) {
         return false;
@@ -55,20 +56,38 @@ function getAuthenticatedUser() {
         return false;
     }
     $token = substr($authorization, 7);
-    // ---------------- Solución rápida: token ES EL USER ID directamente ----------------
+
+    // --- Compatibilidad doble: ID puro O token estilo JSON seguro ---
+    // 1. Intentar verificar como ID
     try {
         $db = getConnection();
         $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
-
         if ($stmt->rowCount() === 1) {
             return $token; // ID del usuario autenticado
         }
-        return false;
     } catch (PDOException $e) {
-        error_log('Error de autenticación: ' . $e->getMessage());
+        error_log('Error de autenticación (id directo): ' . $e->getMessage());
         return false;
     }
+
+    // 2. Intentar verificar como token seguro (JSON codificado)
+    $userIdFromToken = validateAuthToken($token);
+    if ($userIdFromToken) {
+        try {
+            $db = getConnection();
+            $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
+            $stmt->execute([$userIdFromToken]);
+            if ($stmt->rowCount() === 1) {
+                return $userIdFromToken;
+            }
+        } catch (PDOException $e) {
+            error_log('Error de autenticación (token seguro): ' . $e->getMessage());
+            return false;
+        }
+    }
+    // Si no es válido ningún método, rechazar
+    return false;
 }
 
 // Función para registrar acciones en el log
