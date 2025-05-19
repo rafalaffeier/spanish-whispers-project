@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -115,7 +114,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-scroll">
         <DialogHeader>
           <DialogTitle>Editar perfil de empleado</DialogTitle>
         </DialogHeader>
@@ -142,68 +141,30 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
           {/* Grid de dos columnas para campos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Campos personales */}
+            {/* campos personales */}
             <div>
               <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
+              <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="lastName">Apellidos</Label>
-              <Input
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-              />
+              <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
+              <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="dni">NIF / CIF / ID</Label>
-              <Input
-                id="dni"
-                name="dni"
-                value={formData.dni}
-                onChange={handleChange}
-                required
-              />
+              <Input id="dni" name="dni" value={formData.dni} onChange={handleChange} required />
             </div>
-
             <div>
               <Label htmlFor="department">Departamento</Label>
-              <Input
-                id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="Ej: IT, RRHH..."
-              />
+              <Input id="department" name="department" value={formData.department} onChange={handleChange} placeholder="Ej: IT, RRHH..." />
             </div>
             <div>
               <Label htmlFor="position">Cargo</Label>
-              <Input
-                id="position"
-                name="position"
-                value={formData.position}
-                onChange={handleChange}
-                placeholder="Ej: Técnico, Manager..."
-              />
+              <Input id="position" name="position" value={formData.position} onChange={handleChange} placeholder="Ej: Técnico, Manager..." />
             </div>
             <div>
               <Label htmlFor="division">División</Label>
@@ -222,68 +183,31 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
             </div>
             <div>
               <Label htmlFor="country">País</Label>
-              <Input
-                id="country"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                placeholder="España, Andorra..."
-              />
+              <Input id="country" name="country" value={formData.country} onChange={handleChange} placeholder="España, Andorra..." />
             </div>
             <div>
               <Label htmlFor="province">Provincia</Label>
-              <Input
-                id="province"
-                name="province"
-                value={formData.province}
-                onChange={handleChange}
-              />
+              <Input id="province" name="province" value={formData.province} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="city">Ciudad</Label>
-              <Input
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-              />
+              <Input id="city" name="city" value={formData.city} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="address">Dirección</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Dirección de empleado"
-              />
+              <Input id="address" name="address" value={formData.address} onChange={handleChange} placeholder="Dirección de empleado" />
             </div>
             <div>
               <Label htmlFor="companyAddress">Calle de la empresa</Label>
-              <Input
-                id="companyAddress"
-                name="companyAddress"
-                value={formData.companyAddress}
-                onChange={handleChange}
-              />
+              <Input id="companyAddress" name="companyAddress" value={formData.companyAddress} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="zipCode">Código postal</Label>
-              <Input
-                id="zipCode"
-                name="zipCode"
-                value={formData.zipCode}
-                onChange={handleChange}
-              />
+              <Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="phone">Teléfono</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
+              <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} />
             </div>
           </div>
 

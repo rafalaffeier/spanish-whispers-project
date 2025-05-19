@@ -35,10 +35,9 @@ function getConnection() {
 
 require_once __DIR__ . '/auth/utils.php'; // Asegura tener accesso a validateAuthToken()
 
-// FUNCIÓN ACTUALIZADA: aceptar token como id directo O como token generado (JSON base64 con user_id)
-// *** AHORA BUSCA EN 'empleados' EN VEZ DE 'users' ***
+// FUNCIÓN ACTUALIZADA: aceptar token como id o user_id en tabla empleados
 function getAuthenticatedUser() {
-    // Obtener headers de Authorization de forma cross-server
+    // Obtener headers
     if (function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
     } else {
@@ -59,21 +58,30 @@ function getAuthenticatedUser() {
     }
     $token = substr($authorization, 7);
 
-    // Compatibilidad doble: ID puro O token estilo JSON seguro
-    // 1. Intentar verificar como ID directo (tabla empleados)
+    // Compatibilidad: buscar en empleados.id  o empleados.user_id
     try {
         $db = getConnection();
+
+        // Buscar por id (UUID empleado)
         $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
         if ($stmt->rowCount() === 1) {
-            return $token; // ID del empleado autenticado
+            return $token;
+        }
+
+        // Buscar por user_id (token de autenticación estilo UUID, asociado a empleados.user_id)
+        $stmt2 = $db->prepare('SELECT id FROM empleados WHERE user_id = ? AND activo = 1');
+        $stmt2->execute([$token]);
+        $row = $stmt2->fetch(PDO::FETCH_ASSOC);
+        if ($row && isset($row['id'])) {
+            return $row['id']; // Devolvemos el id real del empleado
         }
     } catch (PDOException $e) {
-        error_log('Error de autenticación (id directo): ' . $e->getMessage());
+        error_log('Error de autenticación (id/user_id): ' . $e->getMessage());
         return false;
     }
 
-    // 2. Intentar verificar como token seguro (JSON codificado)
+    // 2. Intentar token JWT / JSON seguro (para compatibilidad futura)
     $userIdFromToken = validateAuthToken($token);
     if ($userIdFromToken) {
         try {
@@ -88,7 +96,7 @@ function getAuthenticatedUser() {
             return false;
         }
     }
-    // Si no es válido ningún método, rechazar
+
     return false;
 }
 
