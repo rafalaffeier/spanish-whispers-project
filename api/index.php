@@ -1,9 +1,8 @@
-
 <?php
 // API RESTful principal
 require_once 'config.php';
+require_once 'utils.php';       // Se asegura cargar una sola vez
 require_once 'auth/index.php';
-require_once 'utils.php';
 
 // Verificar auth para rutas protegidas
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

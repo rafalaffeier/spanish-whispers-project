@@ -3,6 +3,7 @@
 // Utility functions for authentication
 
 // La función generateUUID ahora está centralizada en api/utils.php
+// *** ELIMINADA LA FUNCIÓN DUPLICADA generateUUID() ***
 
 /**
  * Generate a secure token for authentication

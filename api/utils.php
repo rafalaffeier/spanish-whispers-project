@@ -2,7 +2,7 @@
 <?php
 // Funciones de utilidad para la API
 
-// Función para generar UUID v4
+// Función para generar UUID v4 (SOLO aquí, no duplicar en otros archivos)
 function generateUUID() {
     return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         mt_rand(0, 0xffff), mt_rand(0, 0xffff),
