@@ -20,5 +20,6 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: '/apphora/', // Añadido: Establece el path base para todos los assets
+  // Ajuste: base dinámica
+  base: mode === 'production' ? '/apphora/' : '/',
 }));
