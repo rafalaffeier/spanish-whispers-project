@@ -9,6 +9,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { updateEmployee } from '@/services/employeeService';
 
+// Opciones de ejemplo, puedes adaptar según necesites
+const departments = [
+  "IT", "Recursos Humanos", "Finanzas", "Ventas", "Marketing", "Otros"
+];
+const divisions = [
+  "España", "Andorra", "Latam", "Europa"
+];
+
 interface ProfileEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -18,27 +26,46 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
   const { currentEmployee, setCurrentEmployee } = useTimesheet();
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    avatar: ''
-    // Eliminado: coordinates
+    name: "",
+    lastName: "",
+    email: "",
+    dni: "",
+    department: "",
+    position: "",
+    division: "",
+    country: "",
+    province: "",
+    city: "",
+    address: "",
+    companyAddress: "",
+    zipCode: "",
+    phone: "",
+    avatar: "",
   });
 
   useEffect(() => {
     if (open && currentEmployee) {
       setFormData({
-        name: currentEmployee.name || '',
-        email: currentEmployee.email || '',
-        phone: currentEmployee.phone || '',
-        address: currentEmployee.address || '',
-        avatar: currentEmployee.avatar || ''
+        name: currentEmployee.name || "",
+        lastName: currentEmployee.lastName || "",
+        email: currentEmployee.email || "",
+        dni: currentEmployee.dni || "",
+        department: currentEmployee.department || "",
+        position: currentEmployee.position || "",
+        division: currentEmployee.division || "",
+        country: currentEmployee.country || "",
+        province: currentEmployee.province || "",
+        city: currentEmployee.city || "",
+        address: currentEmployee.address || "",
+        companyAddress: currentEmployee.companyAddress || "",
+        zipCode: currentEmployee.zipCode || "",
+        phone: currentEmployee.phone || "",
+        avatar: currentEmployee.avatar || "",
       });
     }
   }, [open, currentEmployee]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -48,29 +75,33 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
     if (!currentEmployee) return;
 
-    // Actualización REAL en backend
     try {
       await updateEmployee(currentEmployee.id, {
         name: formData.name,
+        lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
+        dni: formData.dni,
+        department: formData.department,
+        position: formData.position,
+        division: formData.division,
+        country: formData.country,
+        province: formData.province,
+        city: formData.city,
         address: formData.address,
-        avatar: formData.avatar
+        companyAddress: formData.companyAddress,
+        zipCode: formData.zipCode,
+        phone: formData.phone,
+        avatar: formData.avatar,
       });
 
-      // Actualizar el empleado en el contexto
       setCurrentEmployee({
         ...currentEmployee,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        avatar: formData.avatar
+        ...formData,
       });
 
       toast({
         title: "Perfil actualizado",
-        description: "Los cambios han sido guardados correctamente."
+        description: "Los cambios han sido guardados correctamente.",
       });
 
       onOpenChange(false);
@@ -86,16 +117,18 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Editar perfil</DialogTitle>
+          <DialogTitle>Edición de mi perfil</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {/* Avatar */}
           <div className="flex flex-col items-center space-y-2">
             <Avatar className="h-24 w-24">
               <AvatarImage src={formData.avatar || "/lovable-uploads/7cbe0d8f-8606-47a9-90f0-6e26f18cf47c.png"} />
-              <AvatarFallback>{formData.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback>
+                {formData.name.charAt(0) || ""}
+              </AvatarFallback>
             </Avatar>
             <div className="grid w-full max-w-sm items-center gap-1.5">
               <Label htmlFor="avatar">URL de imagen</Label>
@@ -109,9 +142,10 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
             </div>
           </div>
 
-          {/* Datos personales */}
-          <div className="grid w-full gap-4">
-            <div className="grid w-full items-center gap-1.5">
+          {/* Grid de dos columnas para datos personales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Nombre y Apellidos */}
+            <div>
               <Label htmlFor="name">Nombre</Label>
               <Input
                 id="name"
@@ -121,8 +155,18 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 required
               />
             </div>
-            
-            <div className="grid w-full items-center gap-1.5">
+            <div>
+              <Label htmlFor="lastName">Apellidos</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Email & DNI */}
+            <div>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -133,8 +177,117 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 required
               />
             </div>
+            <div>
+              <Label htmlFor="dni">NIF / CIF / ID</Label>
+              <Input
+                id="dni"
+                name="dni"
+                value={formData.dni}
+                onChange={handleChange}
+              />
+            </div>
 
-            <div className="grid w-full items-center gap-1.5">
+            {/* Departamento y Cargo/Puesto */}
+            <div>
+              <Label htmlFor="department">Departamento</Label>
+              <Input
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                placeholder="p. ej IT, RRHH..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="position">Cargo</Label>
+              <Input
+                id="position"
+                name="position"
+                value={formData.position}
+                onChange={handleChange}
+                placeholder="p. ej Técnico, Manager..."
+              />
+            </div>
+
+            {/* División y País */}
+            <div>
+              <Label htmlFor="division">División</Label>
+              <select
+                id="division"
+                name="division"
+                value={formData.division}
+                onChange={handleChange}
+                className="block w-full border rounded px-2 py-2"
+              >
+                <option value="">Selecciona...</option>
+                {divisions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="country">País</Label>
+              <Input
+                id="country"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                placeholder="España, Andorra..."
+              />
+            </div>
+
+            {/* Provincia y Ciudad */}
+            <div>
+              <Label htmlFor="province">Provincia</Label>
+              <Input
+                id="province"
+                name="province"
+                value={formData.province}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label htmlFor="city">Ciudad</Label>
+              <Input
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Dirección y Calle empresa */}
+            <div>
+              <Label htmlFor="address">Dirección</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Dirección de empleado"
+              />
+            </div>
+            <div>
+              <Label htmlFor="companyAddress">Calle de la empresa</Label>
+              <Input
+                id="companyAddress"
+                name="companyAddress"
+                value={formData.companyAddress}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Código postal y Teléfono */}
+            <div>
+              <Label htmlFor="zipCode">Código postal</Label>
+              <Input
+                id="zipCode"
+                name="zipCode"
+                value={formData.zipCode}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
               <Label htmlFor="phone">Teléfono</Label>
               <Input
                 id="phone"
@@ -143,18 +296,8 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="address">Dirección</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
