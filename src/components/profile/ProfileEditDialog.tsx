@@ -152,7 +152,15 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+              <Input 
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
+                tabIndex={-1}
+              />
             </div>
             <div>
               <Label htmlFor="dni">NIF / CIF / ID</Label>
