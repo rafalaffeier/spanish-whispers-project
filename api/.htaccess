@@ -24,7 +24,14 @@ Options -Indexes
 # Establecer el tipo MIME para los archivos JSON
 AddType application/json .json
 
-# Permitir conexiones cross-origin
-Header set Access-Control-Allow-Origin "*"
-Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+# --- CABECERAS CORS SIEMPRE ---
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
+# Asegurar que las peticiones OPTIONS nunca son bloqueadas (por si acaso alguna regla lo impide)
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
