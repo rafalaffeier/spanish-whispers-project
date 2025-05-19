@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,38 +12,39 @@ import { updateEmployee } from '@/services/employeeService';
 const ProfileEditDialog = ({ open, onOpenChange }) => {
   const { currentEmployee, setCurrentEmployee } = useTimesheet();
 
-  // Definir los campos igual que en tu tabla empleados
+  // Mapeamos los campos que sí existen en Employee y se usan en tu API al frontend
   const [formData, setFormData] = useState({
-    nombre: "",
-    apellidos: "",
+    name: "",
+    lastName: "",
     email: "",
     dni: "",
-    departamento_id: "",
-    cargo: "",
+    department: "",
+    position: "",
     division: "",
-    pais: "",
-    ciudad: "",
-    direccion: "",
-    codigo_postal: "",
-    telefono: "",
+    country: "",
+    city: "",
+    address: "",
+    zipCode: "",
+    phone: "",
     avatar: "",
   });
 
+  // Cargar datos del empleado real en los campos correctos
   useEffect(() => {
     if (open && currentEmployee) {
       setFormData({
-        nombre: currentEmployee.nombre || currentEmployee.name || "",
-        apellidos: currentEmployee.apellidos || currentEmployee.lastName || "",
+        name: currentEmployee.name || "",
+        lastName: currentEmployee.lastName || "",
         email: currentEmployee.email || "",
         dni: currentEmployee.dni || "",
-        departamento_id: currentEmployee.departamento_id || "",
-        cargo: currentEmployee.cargo || currentEmployee.position || "",
+        department: currentEmployee.department || "",
+        position: currentEmployee.position || "",
         division: currentEmployee.division || "",
-        pais: currentEmployee.pais || currentEmployee.country || "",
-        ciudad: currentEmployee.ciudad || currentEmployee.city || "",
-        direccion: currentEmployee.direccion || currentEmployee.address || "",
-        codigo_postal: currentEmployee.codigo_postal || currentEmployee.zipCode || "",
-        telefono: currentEmployee.telefono || currentEmployee.phone || "",
+        country: currentEmployee.country || "",
+        city: currentEmployee.city || "",
+        address: currentEmployee.address || "",
+        zipCode: currentEmployee.zipCode || "",
+        phone: currentEmployee.phone || "",
         avatar: currentEmployee.avatar || "",
       });
     }
@@ -54,24 +55,25 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Guardar cambios usando las claves de la tabla empleados
+  // Guardar cambios usando los campos correctos del modelo Employee
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentEmployee) return;
     try {
+      // Mapeo al modelo backend si la API lo requiere. Ajusta aquí según corresponda.
       await updateEmployee(currentEmployee.id, {
-        nombre: formData.nombre,
-        apellidos: formData.apellidos,
-        email: formData.email, // Solo lectura, pero se envía por si acaso (la API decidirá si permitir cambios)
+        name: formData.name,
+        lastName: formData.lastName,
+        email: formData.email,
         dni: formData.dni,
-        departamento_id: formData.departamento_id,
-        cargo: formData.cargo,
+        department: formData.department,
+        position: formData.position,
         division: formData.division,
-        pais: formData.pais,
-        ciudad: formData.ciudad,
-        direccion: formData.direccion,
-        codigo_postal: formData.codigo_postal,
-        telefono: formData.telefono,
+        country: formData.country,
+        city: formData.city,
+        address: formData.address,
+        zipCode: formData.zipCode,
+        phone: formData.phone,
         avatar: formData.avatar,
       });
       setCurrentEmployee({
@@ -98,6 +100,7 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-scroll">
         <DialogHeader>
           <DialogTitle>Editar perfil empleado</DialogTitle>
+          <DialogDescription>Actualiza aquí tus datos de empleado. El email y el NIF son de solo lectura.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {/* Avatar */}
@@ -105,7 +108,7 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
             <Avatar className="h-24 w-24">
               <AvatarImage src={formData.avatar || "/lovable-uploads/7cbe0d8f-8606-47a9-90f0-6e26f18cf47c.png"} />
               <AvatarFallback>
-                {formData.nombre.charAt(0)}
+                {formData.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="grid w-full max-w-sm items-center gap-1.5">
@@ -123,12 +126,12 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
           {/* Datos personales y laborales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleChange} required />
+              <Label htmlFor="name">Nombre</Label>
+              <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
             </div>
             <div>
-              <Label htmlFor="apellidos">Apellidos</Label>
-              <Input id="apellidos" name="apellidos" value={formData.apellidos} onChange={handleChange} required />
+              <Label htmlFor="lastName">Apellidos</Label>
+              <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
@@ -144,39 +147,39 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
             </div>
             <div>
               <Label htmlFor="dni">NIF / CIF / ID</Label>
-              <Input id="dni" name="dni" value={formData.dni} onChange={handleChange} required />
+              <Input id="dni" name="dni" value={formData.dni} readOnly className="bg-gray-100 cursor-not-allowed" required />
             </div>
             <div>
-              <Label htmlFor="departamento_id">Departamento (ID)</Label>
-              <Input id="departamento_id" name="departamento_id" value={formData.departamento_id} onChange={handleChange} />
+              <Label htmlFor="department">Departamento</Label>
+              <Input id="department" name="department" value={formData.department} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="cargo">Cargo</Label>
-              <Input id="cargo" name="cargo" value={formData.cargo} onChange={handleChange} />
+              <Label htmlFor="position">Cargo</Label>
+              <Input id="position" name="position" value={formData.position} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="division">División</Label>
               <Input id="division" name="division" value={formData.division} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="pais">País</Label>
-              <Input id="pais" name="pais" value={formData.pais} onChange={handleChange} />
+              <Label htmlFor="country">País</Label>
+              <Input id="country" name="country" value={formData.country} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="ciudad">Ciudad</Label>
-              <Input id="ciudad" name="ciudad" value={formData.ciudad} onChange={handleChange} />
+              <Label htmlFor="city">Ciudad</Label>
+              <Input id="city" name="city" value={formData.city} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="direccion">Dirección</Label>
-              <Input id="direccion" name="direccion" value={formData.direccion} onChange={handleChange} />
+              <Label htmlFor="address">Dirección</Label>
+              <Input id="address" name="address" value={formData.address} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="codigo_postal">Código Postal</Label>
-              <Input id="codigo_postal" name="codigo_postal" value={formData.codigo_postal} onChange={handleChange} />
+              <Label htmlFor="zipCode">Código Postal</Label>
+              <Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="telefono">Teléfono</Label>
-              <Input id="telefono" name="telefono" value={formData.telefono} onChange={handleChange} />
+              <Label htmlFor="phone">Teléfono</Label>
+              <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} />
             </div>
           </div>
 
@@ -193,4 +196,3 @@ const ProfileEditDialog = ({ open, onOpenChange }) => {
 };
 
 export default ProfileEditDialog;
-
