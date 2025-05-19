@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { updateEmployee } from '@/services/employeeService';
 
-// Opciones de ejemplo, puedes adaptar según necesites
 const departments = [
   "IT", "Recursos Humanos", "Finanzas", "Ventas", "Marketing", "Otros"
 ];
@@ -103,7 +102,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
         title: "Perfil actualizado",
         description: "Los cambios han sido guardados correctamente.",
       });
-
       onOpenChange(false);
     } catch (err: any) {
       toast({
@@ -117,9 +115,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edición de mi perfil</DialogTitle>
+          <DialogTitle>Editar perfil de empleado</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {/* Avatar */}
@@ -142,9 +140,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
             </div>
           </div>
 
-          {/* Grid de dos columnas para datos personales */}
+          {/* Grid de dos columnas para campos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Nombre y Apellidos */}
+            {/* Campos personales */}
             <div>
               <Label htmlFor="name">Nombre</Label>
               <Input
@@ -162,10 +160,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
+                required
               />
             </div>
-
-            {/* Email & DNI */}
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -184,10 +181,10 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 name="dni"
                 value={formData.dni}
                 onChange={handleChange}
+                required
               />
             </div>
 
-            {/* Departamento y Cargo/Puesto */}
             <div>
               <Label htmlFor="department">Departamento</Label>
               <Input
@@ -195,7 +192,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                placeholder="p. ej IT, RRHH..."
+                placeholder="Ej: IT, RRHH..."
               />
             </div>
             <div>
@@ -205,11 +202,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 name="position"
                 value={formData.position}
                 onChange={handleChange}
-                placeholder="p. ej Técnico, Manager..."
+                placeholder="Ej: Técnico, Manager..."
               />
             </div>
-
-            {/* División y País */}
             <div>
               <Label htmlFor="division">División</Label>
               <select
@@ -235,8 +230,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 placeholder="España, Andorra..."
               />
             </div>
-
-            {/* Provincia y Ciudad */}
             <div>
               <Label htmlFor="province">Provincia</Label>
               <Input
@@ -255,8 +248,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-
-            {/* Dirección y Calle empresa */}
             <div>
               <Label htmlFor="address">Dirección</Label>
               <Input
@@ -276,8 +267,6 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 onChange={handleChange}
               />
             </div>
-
-            {/* Código postal y Teléfono */}
             <div>
               <Label htmlFor="zipCode">Código postal</Label>
               <Input
