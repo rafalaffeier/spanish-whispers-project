@@ -1,3 +1,4 @@
+
 <?php
 // Configuración global de la API
 
@@ -35,6 +36,7 @@ function getConnection() {
 require_once __DIR__ . '/auth/utils.php'; // Asegura tener accesso a validateAuthToken()
 
 // FUNCIÓN ACTUALIZADA: aceptar token como id directo O como token generado (JSON base64 con user_id)
+// *** AHORA BUSCA EN 'empleados' EN VEZ DE 'users' ***
 function getAuthenticatedUser() {
     // Obtener headers de Authorization de forma cross-server
     if (function_exists('apache_request_headers')) {
@@ -57,14 +59,14 @@ function getAuthenticatedUser() {
     }
     $token = substr($authorization, 7);
 
-    // --- Compatibilidad doble: ID puro O token estilo JSON seguro ---
-    // 1. Intentar verificar como ID
+    // Compatibilidad doble: ID puro O token estilo JSON seguro
+    // 1. Intentar verificar como ID directo (tabla empleados)
     try {
         $db = getConnection();
-        $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
+        $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
         if ($stmt->rowCount() === 1) {
-            return $token; // ID del usuario autenticado
+            return $token; // ID del empleado autenticado
         }
     } catch (PDOException $e) {
         error_log('Error de autenticación (id directo): ' . $e->getMessage());
@@ -76,7 +78,7 @@ function getAuthenticatedUser() {
     if ($userIdFromToken) {
         try {
             $db = getConnection();
-            $stmt = $db->prepare('SELECT id FROM users WHERE id = ? AND activo = 1');
+            $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
             $stmt->execute([$userIdFromToken]);
             if ($stmt->rowCount() === 1) {
                 return $userIdFromToken;
