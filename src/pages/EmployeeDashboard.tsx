@@ -25,16 +25,23 @@ const EmployeeDashboard = () => {
       if (profileDialogOpen && currentEmployee) {
         setEmployeeApiError(null);
         setEmployeeApiResponse(null);
+        // NUEVO: capturamos el token actual y la url
+        const apiToken = localStorage.getItem('authToken') || '';
+        const apiUrl = `https://aplium.com/apphora/api/empleados?id=${currentEmployee.id}`;
+        let debugRequest: any = {
+          url: apiUrl,
+          method: 'GET',
+          time: new Date().toISOString(),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiToken}`
+          }
+        };
+
         try {
-          const resp = await fetch(
-            `https://aplium.com/apphora/api/empleados?id=${currentEmployee.id}`,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
-              }
-            }
-          );
+          const resp = await fetch(apiUrl, {
+            headers: debugRequest.headers
+          });
           const text = await resp.text();
           let data;
           try {
@@ -46,18 +53,22 @@ const EmployeeDashboard = () => {
             status: resp.status,
             ok: resp.ok,
             data,
+            debugRequest,
           });
           if (!resp.ok) {
             setEmployeeApiError({
               status: resp.status,
               msg: data.error || resp.statusText,
               raw: text,
+              debugRequest,
+              responseHeaders: Object.fromEntries(resp.headers.entries())
             });
           }
         } catch (e: any) {
           setEmployeeApiError({
             status: 0,
             msg: e?.message || String(e),
+            debugRequest,
           });
         }
       }
@@ -66,12 +77,17 @@ const EmployeeDashboard = () => {
     // eslint-disable-next-line
   }, [profileDialogOpen, currentEmployee]);
 
-  // Añadir info de debug extra al abrir el perfil
+  // Cuando cambian los errores/response, añadirlos al estado para el panel de debug
   useEffect(() => {
     setDebugData(prev => ({
       ...prev,
       employeeApiError,
       employeeApiResponse,
+      // Añadimos un resumen separado para consumo rápido
+      profileApiDebug: {
+        error: employeeApiError,
+        response: employeeApiResponse
+      }
     }));
   }, [employeeApiError, employeeApiResponse]);
 
