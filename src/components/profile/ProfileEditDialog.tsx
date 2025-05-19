@@ -20,10 +20,10 @@ interface ProfileEditDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Función auxiliar para obtener email de cualquier fuente posible
 const getEmployeeEmail = (currentEmployee: any): string => {
-  // Intentar sacar email directo del contexto, si existe
   if (currentEmployee?.email) return currentEmployee.email;
-  // Si no, mirar en localStorage (por si está guardado allí)
+  // Buscar en localStorage como string
   try {
     const raw = localStorage.getItem('currentEmployee');
     if (raw) {
@@ -31,7 +31,21 @@ const getEmployeeEmail = (currentEmployee: any): string => {
       if (parsed?.email) return parsed.email;
     }
   } catch (e) {}
-  // Si no lo encuentra, devolver string vacío
+  return "";
+};
+
+// Función auxiliar para obtener dni/id de cualquier sitio posible
+const getEmployeeDni = (currentEmployee: any): string => {
+  if (currentEmployee?.dni) return currentEmployee.dni;
+  try {
+    const raw = localStorage.getItem('currentEmployee');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.dni) return parsed.dni;
+      // Fallback: si la api guardó 'NIF', buscar también 'NIF'
+      if (parsed?.NIF) return parsed.NIF;
+    }
+  } catch (e) {}
   return "";
 };
 
@@ -61,8 +75,8 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
       setFormData({
         name: currentEmployee.name || "",
         lastName: currentEmployee.lastName || "",
-        email: getEmployeeEmail(currentEmployee), // <--- Esto coge siempre el email correcto
-        dni: currentEmployee.dni || "",
+        email: getEmployeeEmail(currentEmployee),      // <-- siempre busca y rellena email disponible
+        dni: getEmployeeDni(currentEmployee),          // <-- siempre busca y rellena dni disponible
         department: currentEmployee.department || "",
         position: currentEmployee.position || "",
         division: currentEmployee.division || "",
