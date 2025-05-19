@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTimesheet } from '@/context/TimesheetContext';
@@ -15,6 +14,66 @@ const EmployeeDashboard = () => {
   const { currentEmployee, setCurrentEmployee, updateTimesheet, getCurrentTimesheet, loading } = useTimesheet();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [debugData, setDebugData] = useState<Record<string, any>>({});
+
+  // Debug: Registrar último error 401 u otra respuesta de getEmployee aquí
+  const [employeeApiError, setEmployeeApiError] = useState<any>(null);
+  const [employeeApiResponse, setEmployeeApiResponse] = useState<any>(null);
+
+  // Debug: Interceptar apertura de dialog para lanzar fetch manual (sin cambiar el ProfileEditDialog actual)
+  useEffect(() => {
+    const fetchForDebug = async () => {
+      if (profileDialogOpen && currentEmployee) {
+        setEmployeeApiError(null);
+        setEmployeeApiResponse(null);
+        try {
+          const resp = await fetch(
+            `https://aplium.com/apphora/api/empleados?id=${currentEmployee.id}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
+              }
+            }
+          );
+          const text = await resp.text();
+          let data;
+          try {
+            data = text.trim() ? JSON.parse(text) : {};
+          } catch (e) {
+            data = { error: 'No se pudo parsear JSON', raw: text };
+          }
+          setEmployeeApiResponse({
+            status: resp.status,
+            ok: resp.ok,
+            data,
+          });
+          if (!resp.ok) {
+            setEmployeeApiError({
+              status: resp.status,
+              msg: data.error || resp.statusText,
+              raw: text,
+            });
+          }
+        } catch (e: any) {
+          setEmployeeApiError({
+            status: 0,
+            msg: e?.message || String(e),
+          });
+        }
+      }
+    };
+    fetchForDebug();
+    // eslint-disable-next-line
+  }, [profileDialogOpen, currentEmployee]);
+
+  // Añadir info de debug extra al abrir el perfil
+  useEffect(() => {
+    setDebugData(prev => ({
+      ...prev,
+      employeeApiError,
+      employeeApiResponse,
+    }));
+  }, [employeeApiError, employeeApiResponse]);
 
   // Solo para logs durante eventos importantes, nunca en el body principal (render)
   const addLog = (message: string) => {
@@ -159,7 +218,8 @@ const EmployeeDashboard = () => {
         data={{
           employee: currentEmployee,
           timesheet: currentTimesheet,
-          ...debugData
+          ...debugData,
+          // addLog, employeeApiError, employeeApiResponse se añaden aquí automáticamente
         }} 
       />
     </div>
@@ -167,4 +227,3 @@ const EmployeeDashboard = () => {
 };
 
 export default EmployeeDashboard;
-
