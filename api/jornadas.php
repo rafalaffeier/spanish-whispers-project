@@ -12,10 +12,17 @@ $stmt = $db->prepare("SELECT empresa_id FROM empleados WHERE id = ?");
 $stmt->execute([$userId]);
 $empresaAutenticada = $stmt->fetchColumn();
 
-// Verificar que el empleado solicitado pertenece a esa empresa
+// Obtener NIF de la empresa autenticada
+$stmt = $db->prepare("SELECT e.nif FROM empresas e 
+                      INNER JOIN users u ON e.user_id = u.id 
+                      WHERE u.id = ?");
+$stmt->execute([$userId]);
+$nifEmpresaAutenticada = $stmt->fetchColumn();
+
+// Verificar que el empleado solicitado pertenece a esa empresa por NIF
 $empleadoId = $_GET['empleado_id'] ?? null;
-$stmt = $db->prepare("SELECT COUNT(*) FROM empleados WHERE id = ? AND empresa_id = ?");
-$stmt->execute([$empleadoId, $empresaAutenticada]);
+$stmt = $db->prepare("SELECT COUNT(*) FROM empleados WHERE id = ? AND nifdeMiEmpresa = ?");
+$stmt->execute([$empleadoId, $nifEmpresaAutenticada]);
 if ($stmt->fetchColumn() == 0) {
     response(['error' => 'Acceso denegado: empleado no pertenece a tu empresa'], 403);
 }
