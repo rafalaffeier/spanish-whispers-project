@@ -118,12 +118,23 @@ const AdminDashboard = () => {
   // Obtener datos del usuario actual
   const empresaDivision = currentEmployee?.division; // Asumimos que "division" agrupa a la empresa
 
-  // Filtrar empleados: solo los que pertenecen a la empresa actual
-  // Excluimos al propio empleado de tipo empresa/admin del listado
+  // Obtener NIF asociado a la empresa del administrador (empleador)
+  // Suponemos campo 'companyNif', si no existe usar 'nif' o avisar
+  const empresaNif =
+    currentEmployee?.companyNif ||
+    currentEmployee?.nif ||
+    currentEmployee?.nifEmpresa ||
+    null;
+
+  // Filtrar empleados: mostrar solo los que tengan el mismo NIF de empresa
+  // Suponemos que cada empleado tiene un campo companyNif o nifEmpresa
   const filteredEmployees = employees.filter(emp =>
     !emp.isCompany &&
-    emp.division &&
-    emp.division === empresaDivision
+    (
+      // Match por companyNif o por nifEmpresa (según el campo guardado en empleados)
+      emp.companyNif === empresaNif ||
+      emp.nifEmpresa === empresaNif
+    )
   );
 
   // Obtener nombre del empleado seleccionado (para cabecera)
@@ -152,7 +163,7 @@ const AdminDashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los empleados</SelectItem>
-                  {/* Mostrar solo los empleados de la empresa */}
+                  {/* Mostrar solo los empleados de la empresa por NIF */}
                   {filteredEmployees.map(emp => (
                     <SelectItem value={emp.id} key={emp.id}>
                       {emp.name}
