@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/AdminSidebar';
@@ -116,6 +115,17 @@ const AdminDashboard = () => {
     addLog(`Data loaded: ${employees.length} employees, ${timesheets.length} timesheets, Filtered by: ${selectedEmployeeId}`);
   }, [employees, timesheets, todayTimesheets.length, activeEmployees, selectedEmployeeId]);
 
+  // Obtener datos del usuario actual
+  const empresaDivision = currentEmployee?.division; // Asumimos que "division" agrupa a la empresa
+
+  // Filtrar empleados: solo los que pertenecen a la empresa actual
+  // Excluimos al propio empleado de tipo empresa/admin del listado
+  const filteredEmployees = employees.filter(emp =>
+    !emp.isCompany &&
+    emp.division &&
+    emp.division === empresaDivision
+  );
+
   // Obtener nombre del empleado seleccionado (para cabecera)
   const selectedEmployee = selectedEmployeeId === 'all'
     ? null
@@ -142,7 +152,8 @@ const AdminDashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los empleados</SelectItem>
-                  {employees.map(emp => (
+                  {/* Mostrar solo los empleados de la empresa */}
+                  {filteredEmployees.map(emp => (
                     <SelectItem value={emp.id} key={emp.id}>
                       {emp.name}
                     </SelectItem>
