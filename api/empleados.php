@@ -36,29 +36,6 @@ switch ($method) {
         response(['error' => 'Método no permitido'], 405);
 }
 
-function getEmpleados() {
-    try {
-        $db = ge tConnection();
-        $stmt = $db->query('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
-                           FROM empleados e 
-                           LEFT JOIN users u ON e.user_id = u.id
-                           LEFT JOIN roles r ON u.rol_id = r.id 
-                           LEFT JOIN departamentos d ON e.departamento_id = d.id 
-                           ORDER BY e.nombre');
-        $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($empleados as &$empleado) {
-            unset($empleado['password']);
-            // Asegúrate de devolver el nif de la empresa
-            $empleado['nifdeMiEmpresa'] = $empleado['nifdeMiEmpresa'];
-        }
-
-        response($empleados);
-    } catch (PDOException $e) {
-        response(['error' => 'Error al obtener empleados: ' . $e->getMessage()], 500);
-    }
-}
-
  function getEmpleados() {
     $userId = getAuthenticatedUser();
     if (!$userId) {
