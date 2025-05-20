@@ -1,10 +1,13 @@
-
 <?php
 // Configuración global de la API
 
-// Activar reporte de errores para desarrollo
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// --- SOLO DEBUG ---
+// ini_set('display_errors', 1);
+// error_reporting(E_ALL);
+
+// --- PRODUCCIÓN ---
+ini_set('display_errors', 0);
+error_reporting(0);
 
 // Configuración de la base de datos
 function getConnection() {
