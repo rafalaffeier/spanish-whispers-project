@@ -1,4 +1,3 @@
-
 // Servicios para gestión de empresas
 import { fetchWithAuth, normalizeNif } from './apiHelpers';
 import { toast } from "sonner";
@@ -67,6 +66,42 @@ export const getCompanies = async () => {
   } catch (error) {
     console.error('Error al obtener empresas:', error);
     toast.error('Error al cargar la lista de empresas');
+    throw error;
+  }
+};
+
+// Obtener información de una empresa por su NIF
+export const getCompanyByNif = async (nif: string) => {
+  try {
+    if (!nif) throw new Error("NIF no proporcionado");
+    // Normaliza el NIF si es necesario
+    const response = await fetch(`${API_BASE_URL}/empresas?nif=${encodeURIComponent(nif)}`);
+    const text = await response.text();
+    const data = JSON.parse(text);
+    if (data && Array.isArray(data) && data.length > 0) return data[0];
+    throw new Error("Empresa no encontrada");
+  } catch (error) {
+    console.error("[COMPANY SERVICE] Error al obtener empresa:", error);
+    throw error;
+  }
+};
+
+// Actualizar los datos de una empresa
+export const updateCompany = async (id: string, updatedData: any) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/empresas/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(updatedData)
+    });
+    if (!response.ok) throw new Error("Error al actualizar los datos de la empresa");
+    return await response.json();
+  } catch (error) {
+    console.error("[COMPANY SERVICE] Error al actualizar empresa:", error);
     throw error;
   }
 };

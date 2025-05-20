@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { UserCog, Save, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,37 +7,151 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { getCompanyByNif, updateCompany } from '@/services/companyService';
+
+// Reemplaza este import si tu auth/context tiene el empleado actual:
+const getCurrentEmployee = () => {
+  const stored = localStorage.getItem('currentEmployee');
+  return stored ? JSON.parse(stored) : null;
+};
 
 const AdminProfile = () => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  
-  // Datos del perfil (simulados)
+
   const [profileData, setProfileData] = useState({
-    name: 'Francesc Gateu',
-    email: 'admin@aplium.com',
-    phone: '+34 600 123 456',
-    position: 'Administrador',
-    avatar: '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png',
-    bio: 'Administrador del sistema de registro de horas de APLIUM APLICACIONES TELEMATICAS SL.'
+    id: '', // ID de la empresa
+    nombre: '',
+    email: '',
+    telefono: '',
+    direccion: '',
+    nif: '',
+    provincia: '',
+    codigo_postal: '',
+    pais: '',
+    avatar: '',
+    bio: ''
   });
-  
-  // Estado temporal para edición
+
   const [editData, setEditData] = useState(profileData);
-  
-  const handleEditToggle = () => {
-    if (isEditing) {
-      // Guardar cambios
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Solo cargar datos reales si usuario es empresa
+    const employee = getCurrentEmployee();
+    if (employee && employee.isCompany && employee.nifdeMiEmpresa) {
+      setLoading(true);
+      getCompanyByNif(employee.nifdeMiEmpresa)
+        .then(empresa => {
+          setProfileData({
+            id: empresa.id,
+            nombre: empresa.nombre || '',
+            email: empresa.email || '',
+            telefono: empresa.telefono || '',
+            direccion: empresa.direccion || '',
+            nif: empresa.nif || '',
+            provincia: empresa.provincia || '',
+            codigo_postal: empresa.codigo_postal || '',
+            pais: empresa.pais || '',
+            avatar: empresa.avatar || '',
+            bio: '' // El campo bio no existe aún en la tabla, lo dejamos vacío
+          });
+          setEditData({
+            id: empresa.id,
+            nombre: empresa.nombre || '',
+            email: empresa.email || '',
+            telefono: empresa.telefono || '',
+            direccion: empresa.direccion || '',
+            nif: empresa.nif || '',
+            provincia: empresa.provincia || '',
+            codigo_postal: empresa.codigo_postal || '',
+            pais: empresa.pais || '',
+            avatar: empresa.avatar || '',
+            bio: ''
+          });
+        })
+        .catch(err => {
+          toast({
+            title: "Error al cargar datos",
+            description: String(err),
+            variant: "destructive"
+          });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // Simulación si no es empresa (comportamiento anterior)
+      setProfileData({
+        id: '',
+        nombre: 'Francesc Gateu',
+        email: 'admin@aplium.com',
+        telefono: '+34 600 123 456',
+        direccion: '',
+        nif: '',
+        provincia: '',
+        codigo_postal: '',
+        pais: '',
+        avatar: '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png',
+        bio: 'Administrador del sistema de registro de horas de APLIUM APLICACIONES TELEMATICAS SL.'
+      });
+      setEditData({
+        id: '',
+        nombre: 'Francesc Gateu',
+        email: 'admin@aplium.com',
+        telefono: '+34 600 123 456',
+        direccion: '',
+        nif: '',
+        provincia: '',
+        codigo_postal: '',
+        pais: '',
+        avatar: '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png',
+        bio: 'Administrador del sistema de registro de horas de APLIUM APLICACIONES TELEMATICAS SL.'
+      });
+      setLoading(false);
+    }
+  }, []);
+
+  const handleEditToggle = async () => {
+    if (isEditing && profileData.id) {
+      // Guardar cambios en BDD sólo si es empresa
+      setLoading(true);
+      try {
+        await updateCompany(profileData.id, {
+          nombre: editData.nombre,
+          email: editData.email,
+          telefono: editData.telefono,
+          direccion: editData.direccion,
+          nif: editData.nif,
+          provincia: editData.provincia,
+          codigo_postal: editData.codigo_postal,
+          pais: editData.pais,
+          avatar: editData.avatar
+          // Nota: puedes añadir campos adicionales si los soporta la tabla
+        });
+        setProfileData(editData);
+        toast({
+          title: "Perfil actualizado",
+          description: "Los cambios han sido guardados correctamente"
+        });
+      } catch (err) {
+        toast({
+          title: "Error al guardar",
+          description: String(err),
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else if (isEditing) {
+      // Si no es empresa, guardar solo estado local
       setProfileData(editData);
       toast({
         title: "Perfil actualizado",
-        description: "Los cambios han sido guardados correctamente",
+        description: "Los cambios han sido guardados correctamente"
       });
     }
-    
     setIsEditing(!isEditing);
   };
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEditData(prev => ({
@@ -46,23 +160,29 @@ const AdminProfile = () => {
     }));
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <span className="animate-spin mr-2">⏳</span> Cargando perfil...
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full bg-gray-50">
       <AdminSidebar />
-      
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header superior con título */}
         <header className="bg-[#A4CB6A] text-white py-1 px-4 text-center">
-          <h1 className="text-lg font-semibold">APLIUM APLICACIONES TELEMATICAS SL</h1>
+          <h1 className="text-lg font-semibold">{profileData.nombre || "APLIUM APLICACIONES TELEMATICAS SL"}</h1>
         </header>
-        
         <main className="flex-1 overflow-auto p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold">Perfil</h1>
-              <p className="text-gray-600">Gestiona tu información personal</p>
+              <p className="text-gray-600">Gestiona tu información personal/empresarial</p>
             </div>
-            <Button 
+            <Button
               onClick={handleEditToggle}
               className={isEditing ? "bg-[#A4CB6A] hover:bg-[#8FB75A]" : "bg-blue-500 hover:bg-blue-600"}
             >
@@ -79,7 +199,6 @@ const AdminProfile = () => {
               )}
             </Button>
           </div>
-          
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Avatar y sección de la foto */}
@@ -87,88 +206,95 @@ const AdminProfile = () => {
                 <div className="relative">
                   <Avatar className="h-32 w-32 border">
                     <AvatarImage src={profileData.avatar} />
-                    <AvatarFallback>FG</AvatarFallback>
+                    <AvatarFallback>{(profileData.nombre?.charAt(0) || "A")}</AvatarFallback>
                   </Avatar>
-                  
                   {isEditing && (
                     <div className="absolute bottom-0 right-0 bg-[#A4CB6A] rounded-full p-2 text-white cursor-pointer">
                       <Camera className="h-4 w-4" />
                     </div>
                   )}
                 </div>
-                
-                <p className="mt-2 text-center font-medium">{profileData.name}</p>
-                <p className="text-sm text-gray-500">{profileData.position}</p>
+                <p className="mt-2 text-center font-medium">{profileData.nombre}</p>
+                <p className="text-sm text-gray-500">{profileData.nif}</p>
               </div>
-              
               {/* Formulario de perfil */}
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Nombre</label>
+                    <label className="text-sm font-medium">Nombre o razón social</label>
                     {isEditing ? (
-                      <Input 
-                        name="name"
-                        value={editData.name}
-                        onChange={handleChange}
-                      />
+                      <Input name="nombre" value={editData.nombre} onChange={handleChange} />
                     ) : (
-                      <p className="p-2 border rounded-md bg-gray-50">{profileData.name}</p>
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.nombre}</p>
                     )}
                   </div>
-                  
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Email</label>
                     {isEditing ? (
-                      <Input 
-                        name="email"
-                        type="email"
-                        value={editData.email}
-                        onChange={handleChange}
-                      />
+                      <Input name="email" type="email" value={editData.email} onChange={handleChange} />
                     ) : (
                       <p className="p-2 border rounded-md bg-gray-50">{profileData.email}</p>
                     )}
                   </div>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Teléfono</label>
                     {isEditing ? (
-                      <Input 
-                        name="phone"
-                        value={editData.phone}
-                        onChange={handleChange}
-                      />
+                      <Input name="telefono" value={editData.telefono} onChange={handleChange} />
                     ) : (
-                      <p className="p-2 border rounded-md bg-gray-50">{profileData.phone}</p>
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.telefono}</p>
                     )}
                   </div>
-                  
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Cargo</label>
+                    <label className="text-sm font-medium">NIF / CIF</label>
                     {isEditing ? (
-                      <Input 
-                        name="position"
-                        value={editData.position}
-                        onChange={handleChange}
-                      />
+                      <Input name="nif" value={editData.nif} onChange={handleChange} />
                     ) : (
-                      <p className="p-2 border rounded-md bg-gray-50">{profileData.position}</p>
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.nif}</p>
                     )}
                   </div>
                 </div>
-                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Dirección</label>
+                    {isEditing ? (
+                      <Input name="direccion" value={editData.direccion} onChange={handleChange} />
+                    ) : (
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.direccion}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Provincia</label>
+                    {isEditing ? (
+                      <Input name="provincia" value={editData.provincia} onChange={handleChange} />
+                    ) : (
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.provincia}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Código Postal</label>
+                    {isEditing ? (
+                      <Input name="codigo_postal" value={editData.codigo_postal} onChange={handleChange} />
+                    ) : (
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.codigo_postal}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">País</label>
+                    {isEditing ? (
+                      <Input name="pais" value={editData.pais} onChange={handleChange} />
+                    ) : (
+                      <p className="p-2 border rounded-md bg-gray-50">{profileData.pais}</p>
+                    )}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Biografía</label>
                   {isEditing ? (
-                    <Textarea 
-                      name="bio"
-                      value={editData.bio}
-                      onChange={handleChange}
-                      rows={4}
-                    />
+                    <Textarea name="bio" value={editData.bio} onChange={handleChange} rows={4} />
                   ) : (
                     <p className="p-2 border rounded-md bg-gray-50 min-h-[100px]">{profileData.bio}</p>
                   )}
