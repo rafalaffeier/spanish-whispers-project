@@ -1,13 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
-import { UserCog, Save, Camera } from 'lucide-react';
+import { UserCog, Save, Camera, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { getCompanyByNif, updateCompany } from '@/services/companyService';
+import ProfileEditDialog from "@/components/profile/ProfileEditDialog";
+import EmployeeEditForm from "@/components/profile/EmployeeEditForm";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { getEmployees } from "@/services/employeeService";
+import { useNavigate } from "react-router-dom";
 
 // Reemplaza este import si tu auth/context tiene el empleado actual:
 const getCurrentEmployee = () => {
@@ -33,8 +37,14 @@ const AdminProfile = () => {
   });
   const [editData, setEditData] = useState(profileData);
   const [loading, setLoading] = useState(true);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+
+  // Estado para editar empleado
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
+    getEmployees().then(setEmployees).catch(() => setEmployees([]));
     // Obtener SIEMPRE datos de empresa para mostrar en el perfil
     const employee = getCurrentEmployee();
     if (employee && employee.isCompany && employee.nifdeMiEmpresa) {
@@ -195,28 +205,45 @@ const AdminProfile = () => {
           <h1 className="text-lg font-semibold">{profileData.nombre || "Perfil de empresa"}</h1>
         </header>
         <main className="flex-1 overflow-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Perfil</h1>
-              <p className="text-gray-600">Gestiona tu información personal/empresarial</p>
-            </div>
+          <div className="flex flex-wrap gap-4 items-center mb-6">
             <Button
-              onClick={handleEditToggle}
-              className={isEditing ? "bg-[#A4CB6A] hover:bg-[#8FB75A]" : "bg-blue-500 hover:bg-blue-600"}
+              onClick={() => setShowProfileDialog(true)}
+              className="bg-blue-500 hover:bg-blue-600"
             >
-              {isEditing ? (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar cambios
-                </>
-              ) : (
-                <>
-                  <UserCog className="mr-2 h-4 w-4" />
-                  Editar perfil
-                </>
-              )}
+              <Edit className="mr-2 h-4 w-4" />
+              Editar mi perfil
             </Button>
+            <ProfileEditDialog open={showProfileDialog} onOpenChange={setShowProfileDialog} />
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setSelectedEmployeeId("")}
+                className="bg-[#A4CB6A] hover:bg-[#8FB75A] text-white"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Editar perfil de empleado
+              </Button>
+              <Select
+                value={selectedEmployeeId || ""}
+                onValueChange={value => setSelectedEmployeeId(value)}
+              >
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Selecciona empleado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter(emp => !emp.isCompany)
+                    .map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.email})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Avatar y sección de la foto */}
@@ -320,6 +347,17 @@ const AdminProfile = () => {
               </div>
             </div>
           </div>
+
+          {selectedEmployeeId && (
+            <EmployeeEditForm
+              employeeId={selectedEmployeeId}
+              onUpdate={() => {
+                setSelectedEmployeeId(undefined);
+                // Opcionalmente, recargar también lista empleados si quieres
+                getEmployees().then(setEmployees);
+              }}
+            />
+          )}
         </main>
       </div>
     </div>
@@ -327,4 +365,3 @@ const AdminProfile = () => {
 };
 
 export default AdminProfile;
-
