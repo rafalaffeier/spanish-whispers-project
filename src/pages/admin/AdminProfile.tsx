@@ -12,6 +12,7 @@ import EmployeeEditForm from "@/components/profile/EmployeeEditForm";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { getEmployees } from "@/services/employeeService";
 import { useNavigate } from "react-router-dom";
+import CompanyEditDialog from "@/components/profile/CompanyEditDialog";
 
 // Reemplaza este import si tu auth/context tiene el empleado actual:
 const getCurrentEmployee = () => {
@@ -42,6 +43,7 @@ const AdminProfile = () => {
   // Estado para editar empleado
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | undefined>(undefined);
+  const [showCompanyDialog, setShowCompanyDialog] = useState(false);
 
   useEffect(() => {
     getEmployees().then(setEmployees).catch(() => setEmployees([]));
@@ -188,6 +190,11 @@ const AdminProfile = () => {
     }));
   };
 
+  // Detectar si el usuario actual es "empresa/empleador"
+  const currentEmployee = getCurrentEmployee();
+  const isCompany = !!currentEmployee?.isCompany;
+  const nifEmpresa = currentEmployee?.nifdeMiEmpresa ?? "";
+
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -200,20 +207,63 @@ const AdminProfile = () => {
     <div className="flex h-screen w-full bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header superior con título */}
         <header className="bg-[#A4CB6A] text-white py-1 px-4 text-center">
           <h1 className="text-lg font-semibold">{profileData.nombre || "Perfil de empresa"}</h1>
         </header>
         <main className="flex-1 overflow-auto p-6">
           <div className="flex flex-wrap gap-4 items-center mb-6">
             <Button
-              onClick={() => setShowProfileDialog(true)}
+              onClick={() => {
+                if (isCompany) setShowCompanyDialog(true);
+                else setShowProfileDialog(true);
+              }}
               className="bg-blue-500 hover:bg-blue-600"
             >
               <Edit className="mr-2 h-4 w-4" />
               Editar mi perfil
             </Button>
-            <ProfileEditDialog open={showProfileDialog} onOpenChange={setShowProfileDialog} />
+            {/* Mostrar el diálogo correcto según el tipo de usuario */}
+            {isCompany ? (
+              <CompanyEditDialog
+                open={showCompanyDialog}
+                onOpenChange={setShowCompanyDialog}
+                companyNif={nifEmpresa}
+                afterSave={() => {
+                  // Refrescar datos de empresa tras guardar
+                  getCompanyByNif(nifEmpresa)
+                    .then(empresa => {
+                      setProfileData({
+                        id: empresa.id,
+                        nombre: empresa.nombre || '',
+                        email: empresa.email || '',
+                        telefono: empresa.telefono || '',
+                        direccion: empresa.direccion || '',
+                        nif: empresa.nif || '',
+                        provincia: empresa.provincia || '',
+                        codigo_postal: empresa.codigo_postal || '',
+                        pais: empresa.pais || '',
+                        avatar: empresa.avatar || '',
+                        bio: empresa.bio || ''
+                      });
+                      setEditData({
+                        id: empresa.id,
+                        nombre: empresa.nombre || '',
+                        email: empresa.email || '',
+                        telefono: empresa.telefono || '',
+                        direccion: empresa.direccion || '',
+                        nif: empresa.nif || '',
+                        provincia: empresa.provincia || '',
+                        codigo_postal: empresa.codigo_postal || '',
+                        pais: empresa.pais || '',
+                        avatar: empresa.avatar || '',
+                        bio: empresa.bio || ''
+                      });
+                    });
+                }}
+              />
+            ) : (
+              <ProfileEditDialog open={showProfileDialog} onOpenChange={setShowProfileDialog} />
+            )}
 
             <div className="flex items-center gap-2">
               <Button
