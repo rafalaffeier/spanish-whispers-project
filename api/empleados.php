@@ -33,7 +33,7 @@ switch ($method) {
 
 function getEmpleados() {
     try {
-        $db = getConnection();
+        $db = ge tConnection();
         $stmt = $db->query('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
                            FROM empleados e 
                            LEFT JOIN users u ON e.user_id = u.id
@@ -54,30 +54,37 @@ function getEmpleados() {
     }
 }
 
-function getEmpleado($id) {
-    try {
-        $db = getConnection();
-        $stmt = $db->prepare('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
-                             FROM empleados e 
-                             LEFT JOIN users u ON e.user_id = u.id
-                             LEFT JOIN roles r ON u.rol_id = r.id 
-                             LEFT JOIN departamentos d ON e.departamento_id = d.id 
-                             WHERE e.id = ?');
-        $stmt->execute([$id]);
-        $empleado = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$empleado) {
-            response(['error' => 'Empleado no encontrado'], 404);
-        }
-
-        unset($empleado['password']);
-        $empleado['nifdeMiEmpresa'] = $empleado['nifdeMiEmpresa'];
-
-        response($empleado);
-    } catch (PDOException $e) {
-        response(['error' => 'Error al obtener empleado: ' . $e->getMessage()], 500);
+ function getEmpleados() {
+    $userId = getAuthenticatedUser();
+    if (!$userId) {
+        response(['error' => 'No autorizado'], 401);
     }
+
+    $db = getConnection();
+
+    // Obtener empresa_id del empleador autenticado
+    $stmt = $db->prepare("SELECT empresa_id FROM empleados WHERE id = ?");
+    $stmt->execute([$userId]);
+    $empresaId = $stmt->fetchColumn();
+
+    if (!$empresaId) {
+        response(['error' => 'Empresa no encontrada'], 404);
+    }
+
+    // Obtener empleados de esa empresa
+    $stmt = $db->prepare('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
+                          FROM empleados e 
+                          LEFT JOIN users u ON e.user_id = u.id
+                          LEFT JOIN roles r ON u.rol_id = r.id 
+                          LEFT JOIN departamentos d ON e.departamento_id = d.id 
+                          WHERE e.empresa_id = ?
+                          ORDER BY e.nombre');
+    $stmt->execute([$empresaId]);
+
+    $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    response($empleados);
 }
+
 
 function createEmpleado() {
     try {
