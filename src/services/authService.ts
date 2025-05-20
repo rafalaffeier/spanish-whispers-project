@@ -34,7 +34,8 @@ export const login = async (email: string, password: string): Promise<{
         userId: response.empleado.userId || '',
         name: response.empleado.nombre || 'Usuario',
         role: response.empleado.rol || 'empleado',
-        isCompany: response.empleado.esEmpresa || false
+        isCompany: response.empleado.esEmpresa || false,
+        nifdeMiEmpresa: response.empleado.nifdeMiEmpresa || '', // AÑADIDO: poner string vacío si no viene
       };
 
       console.log("[authService] Parsed employee data:", employee);

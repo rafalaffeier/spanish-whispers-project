@@ -119,8 +119,8 @@ const AdminDashboard = () => {
   const empresaDivision = currentEmployee?.division; // Asumimos que "division" agrupa a la empresa
 
   // Usar campo de NIF de la empresa en el dashboard
-  // Suponemos que currentEmployee tiene un campo 'nif' si admin, y que los empleados tienen 'nifdeMiEmpresa'
-  const empresaNif = currentEmployee?.nif ?? null;
+  // Ahora el campo correcto es 'nifdeMiEmpresa'
+  const empresaNif = currentEmployee?.nifdeMiEmpresa ?? null;
 
   // Filtrar empleados sólo por mismo NIF de empresa (nifdeMiEmpresa)
   const filteredEmployees = employees.filter(emp =>
