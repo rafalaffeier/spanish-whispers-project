@@ -1,6 +1,11 @@
 <?php
 require_once 'config.php';
 
+$userId = getAuthenticatedUser();
+if (!$userId) {
+    response(['error' => 'No autorizado'], 401);
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $empleadoId = isset($_GET['id']) ? $_GET['id'] : null;
 
