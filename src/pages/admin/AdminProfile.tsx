@@ -18,9 +18,8 @@ const getCurrentEmployee = () => {
 const AdminProfile = () => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-
   const [profileData, setProfileData] = useState({
-    id: '', // ID de la empresa
+    id: '',
     nombre: '',
     email: '',
     telefono: '',
@@ -32,12 +31,11 @@ const AdminProfile = () => {
     avatar: '',
     bio: ''
   });
-
   const [editData, setEditData] = useState(profileData);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Solo cargar datos reales si usuario es empresa
+    // Obtener SIEMPRE datos de empresa para mostrar en el perfil
     const employee = getCurrentEmployee();
     if (employee && employee.isCompany && employee.nifdeMiEmpresa) {
       setLoading(true);
@@ -54,7 +52,7 @@ const AdminProfile = () => {
             codigo_postal: empresa.codigo_postal || '',
             pais: empresa.pais || '',
             avatar: empresa.avatar || '',
-            bio: '' // El campo bio no existe aún en la tabla, lo dejamos vacío
+            bio: empresa.bio || ''
           });
           setEditData({
             id: empresa.id,
@@ -67,44 +65,71 @@ const AdminProfile = () => {
             codigo_postal: empresa.codigo_postal || '',
             pais: empresa.pais || '',
             avatar: empresa.avatar || '',
-            bio: ''
+            bio: empresa.bio || ''
           });
         })
         .catch(err => {
           toast({
-            title: "Error al cargar datos",
+            title: "Error al cargar datos de empresa",
             description: String(err),
             variant: "destructive"
+          });
+          // En caso de error, resetea los campos a vacío pero sin datos demo
+          setProfileData({
+            id: '',
+            nombre: '',
+            email: '',
+            telefono: '',
+            direccion: '',
+            nif: '',
+            provincia: '',
+            codigo_postal: '',
+            pais: '',
+            avatar: '',
+            bio: ''
+          });
+          setEditData({
+            id: '',
+            nombre: '',
+            email: '',
+            telefono: '',
+            direccion: '',
+            nif: '',
+            provincia: '',
+            codigo_postal: '',
+            pais: '',
+            avatar: '',
+            bio: ''
           });
         })
         .finally(() => setLoading(false));
     } else {
-      // Simulación si no es empresa (comportamiento anterior)
+      // Si por alguna razón el empleado no es empresa o falta info, deja campos vacíos.
       setProfileData({
         id: '',
-        nombre: 'Francesc Gateu',
-        email: 'admin@aplium.com',
-        telefono: '+34 600 123 456',
+        nombre: '',
+        email: '',
+        telefono: '',
         direccion: '',
         nif: '',
         provincia: '',
         codigo_postal: '',
         pais: '',
-        avatar: '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png',
-        bio: 'Administrador del sistema de registro de horas de APLIUM APLICACIONES TELEMATICAS SL.'
+        avatar: '',
+        bio: ''
       });
       setEditData({
         id: '',
-        nombre: 'Francesc Gateu',
-        email: 'admin@aplium.com',
-        telefono: '+34 600 123 456',
+        nombre: '',
+        email: '',
+        telefono: '',
         direccion: '',
         nif: '',
         provincia: '',
         codigo_postal: '',
         pais: '',
-        avatar: '/lovable-uploads/c86911d4-1095-4ee9-9c77-62f624b8e70f.png',
-        bio: 'Administrador del sistema de registro de horas de APLIUM APLICACIONES TELEMATICAS SL.'
+        avatar: '',
+        bio: ''
       });
       setLoading(false);
     }
@@ -112,7 +137,7 @@ const AdminProfile = () => {
 
   const handleEditToggle = async () => {
     if (isEditing && profileData.id) {
-      // Guardar cambios en BDD sólo si es empresa
+      // Guardar cambios en BDD si es empresa
       setLoading(true);
       try {
         await updateCompany(profileData.id, {
@@ -124,8 +149,8 @@ const AdminProfile = () => {
           provincia: editData.provincia,
           codigo_postal: editData.codigo_postal,
           pais: editData.pais,
-          avatar: editData.avatar
-          // Nota: puedes añadir campos adicionales si los soporta la tabla
+          avatar: editData.avatar,
+          bio: editData.bio // Agrega el campo bio si tu API/tables lo soportan
         });
         setProfileData(editData);
         toast({
@@ -141,13 +166,6 @@ const AdminProfile = () => {
       } finally {
         setLoading(false);
       }
-    } else if (isEditing) {
-      // Si no es empresa, guardar solo estado local
-      setProfileData(editData);
-      toast({
-        title: "Perfil actualizado",
-        description: "Los cambios han sido guardados correctamente"
-      });
     }
     setIsEditing(!isEditing);
   };
@@ -174,7 +192,7 @@ const AdminProfile = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header superior con título */}
         <header className="bg-[#A4CB6A] text-white py-1 px-4 text-center">
-          <h1 className="text-lg font-semibold">{profileData.nombre || "APLIUM APLICACIONES TELEMATICAS SL"}</h1>
+          <h1 className="text-lg font-semibold">{profileData.nombre || "Perfil de empresa"}</h1>
         </header>
         <main className="flex-1 overflow-auto p-6">
           <div className="flex justify-between items-center mb-6">
@@ -206,7 +224,7 @@ const AdminProfile = () => {
                 <div className="relative">
                   <Avatar className="h-32 w-32 border">
                     <AvatarImage src={profileData.avatar} />
-                    <AvatarFallback>{(profileData.nombre?.charAt(0) || "A")}</AvatarFallback>
+                    <AvatarFallback>{(profileData.nombre?.charAt(0) || "E")}</AvatarFallback>
                   </Avatar>
                   {isEditing && (
                     <div className="absolute bottom-0 right-0 bg-[#A4CB6A] rounded-full p-2 text-white cursor-pointer">
@@ -309,3 +327,4 @@ const AdminProfile = () => {
 };
 
 export default AdminProfile;
+
