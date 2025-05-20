@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/AdminSidebar';
@@ -7,15 +8,16 @@ import { es } from 'date-fns/locale';
 import { useTimesheet } from '@/context/TimesheetContext';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Download, Users } from 'lucide-react';
-// import EmployeesActivityMap from '@/components/maps/EmployeesActivityMap';
 import DebugPanel from '@/components/debug/DebugPanel';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { employees, timesheets, currentEmployee } = useTimesheet();
   const [selectedView, setSelectedView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [debugData, setDebugData] = useState<Record<string, any>>({});
-  
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | 'all'>('all');
+
   // Función de logging para depuración
   const addLog = (message: string) => {
     console.log(`[AdminDashboard] ${message}`);
@@ -63,9 +65,14 @@ const AdminDashboard = () => {
   // Obtener fecha actual formateada
   const today = new Date();
   const formattedDate = format(today, "d 'de' MMMM 'de' yyyy", { locale: es });
-  
+
+  // Filtrar jornadas para empleado seleccionado
+  const filteredTimesheets = selectedEmployeeId === 'all'
+    ? timesheets
+    : timesheets.filter(ts => ts.employeeId === selectedEmployeeId);
+
   // Filtrar jornadas de hoy
-  const todayTimesheets = timesheets.filter(timesheet => 
+  const todayTimesheets = filteredTimesheets.filter(timesheet => 
     timesheet.date === format(today, 'yyyy-MM-dd')
   );
   
@@ -86,9 +93,9 @@ const AdminDashboard = () => {
   const hoursDisplay = `${formattedHours}h ${formattedMinutes}m`;
   
   // Contar empleados activos (con jornada iniciada hoy)
-  const activeEmployees = todayTimesheets.filter(ts => 
-    ts.status === 'active' || ts.status === 'paused'
-  ).length;
+  const activeEmployees = selectedEmployeeId === 'all'
+    ? todayTimesheets.filter(ts => ts.status === 'active' || ts.status === 'paused').length
+    : (todayTimesheets.some(ts => ts.status === 'active' || ts.status === 'paused') ? 1 : 0);
 
   // Contar total de pausas de hoy
   const totalPauses = todayTimesheets.reduce((total, timesheet) => {
@@ -102,24 +109,59 @@ const AdminDashboard = () => {
       employeesCount: employees.length,
       timesheetsCount: timesheets.length,
       todayTimesheets: todayTimesheets.length,
-      activeEmployees
+      activeEmployees,
+      selectedEmployeeId,
     }));
     
-    addLog(`Data loaded: ${employees.length} employees, ${timesheets.length} timesheets`);
-  }, [employees, timesheets, todayTimesheets.length, activeEmployees]);
+    addLog(`Data loaded: ${employees.length} employees, ${timesheets.length} timesheets, Filtered by: ${selectedEmployeeId}`);
+  }, [employees, timesheets, todayTimesheets.length, activeEmployees, selectedEmployeeId]);
+
+  // Obtener nombre del empleado seleccionado (para cabecera)
+  const selectedEmployee = selectedEmployeeId === 'all'
+    ? null
+    : employees.find(e => e.id === selectedEmployeeId);
 
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 overflow-auto">
         <header className="bg-white shadow">
-          <div className="mx-auto px-4 py-6 md:px-8">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">{formattedDate}</p>
+          <div className="mx-auto px-4 py-6 md:px-8 flex flex-col md:flex-row md:justify-between md:items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600 mt-1">{formattedDate}</p>
+            </div>
+            {/* Dropdown de empleados */}
+            <div className="mt-4 md:mt-0 min-w-[250px]">
+              <Select
+                value={selectedEmployeeId}
+                onValueChange={(value) => setSelectedEmployeeId(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar empleado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los empleados</SelectItem>
+                  {employees.map(emp => (
+                    <SelectItem value={emp.id} key={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </header>
         
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8">
+          {/* Título de datos específicos si se seleccionó un empleado */}
+          {selectedEmployee && (
+            <div className="mb-6">
+              <span className="text-lg text-gray-600">Empleado seleccionado: </span>
+              <span className="font-bold">{selectedEmployee.name}</span>
+            </div>
+          )}
+
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Resumen de actividad</h2>
             
@@ -182,18 +224,7 @@ const AdminDashboard = () => {
             </Card>
           </div>
           
-          {/* Mapa de actividad de empleados REMOVIDO TEMPORALMENTE */}
-          {/* <div className="mb-8">
-            <EmployeesActivityMap 
-              employees={employees} 
-              title="Localización de empleados"
-              onMapInitialized={() => {
-                addLog("Mapa de actividad inicializado");
-              }}
-            />
-          </div> */}
-          
-          {/* Sección para más contenido */}
+          {/* Filtros de visualización */}
           <div className="mb-8">
             <Card className="bg-white">
               <CardHeader>
@@ -248,3 +279,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+// El archivo es largo; considera refactorizarlo en componentes más pequeños.
