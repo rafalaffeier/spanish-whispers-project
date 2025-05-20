@@ -34,9 +34,11 @@ switch ($method) {
 function getEmpleados() {
     try {
         $db = getConnection();
-        $stmt = $db->query('SELECT e.*, r.nombre as rol_nombre, d.nombre as departamento_nombre 
+        // Corregido: JOIN con users y roles a través de user_id
+        $stmt = $db->query('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
                            FROM empleados e 
-                           LEFT JOIN roles r ON e.rol_id = r.id 
+                           LEFT JOIN users u ON e.user_id = u.id
+                           LEFT JOIN roles r ON u.rol_id = r.id 
                            LEFT JOIN departamentos d ON e.departamento_id = d.id 
                            ORDER BY e.nombre');
         $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -55,9 +57,11 @@ function getEmpleados() {
 function getEmpleado($id) {
     try {
         $db = getConnection();
-        $stmt = $db->prepare('SELECT e.*, r.nombre as rol_nombre, d.nombre as departamento_nombre 
+        // Corregido: JOIN con users y roles a través de user_id
+        $stmt = $db->prepare('SELECT e.*, u.rol_id, r.nombre as rol_nombre, d.nombre as departamento_nombre 
                              FROM empleados e 
-                             LEFT JOIN roles r ON e.rol_id = r.id 
+                             LEFT JOIN users u ON e.user_id = u.id
+                             LEFT JOIN roles r ON u.rol_id = r.id 
                              LEFT JOIN departamentos d ON e.departamento_id = d.id 
                              WHERE e.id = ?');
         $stmt->execute([$id]);
@@ -191,6 +195,3 @@ function deleteEmpleado($id) {
         response(['error' => 'Error al eliminar empleado: ' . $e->getMessage()], 500);
     }
 }
-
-// Función para generar UUID v4
-// --- ELIMINADA: Ahora se usa generateUUID() desde utils.php ---
