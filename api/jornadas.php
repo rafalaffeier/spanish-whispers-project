@@ -1,6 +1,26 @@
 <?php
 require_once 'config.php';
 
+$userId = getAuthenticatedUser();
+if (!$userId) {
+    response(['error' => 'No autorizado'], 401);
+}
+
+// Obtener empresa_id del usuario autenticado
+$db = getConnection();
+$stmt = $db->prepare("SELECT empresa_id FROM empleados WHERE id = ?");
+$stmt->execute([$userId]);
+$empresaAutenticada = $stmt->fetchColumn();
+
+// Verificar que el empleado solicitado pertenece a esa empresa
+$empleadoId = $_GET['empleado_id'] ?? null;
+$stmt = $db->prepare("SELECT COUNT(*) FROM empleados WHERE id = ? AND empresa_id = ?");
+$stmt->execute([$empleadoId, $empresaAutenticada]);
+if ($stmt->fetchColumn() == 0) {
+    response(['error' => 'Acceso denegado: empleado no pertenece a tu empresa'], 403);
+}
+
+
 $method = $_SERVER['REQUEST_METHOD'];
 $jornadaId = isset($_GET['id']) ? $_GET['id'] : null;
 $action = isset($_GET['action']) ? $_GET['action'] : null;
