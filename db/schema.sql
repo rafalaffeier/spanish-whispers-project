@@ -1,4 +1,3 @@
-
 -- Esquema de base de datos para el sistema de control de jornada
 -- Crear la base de datos si no existe
 CREATE DATABASE IF NOT EXISTS apliumapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -59,7 +58,8 @@ CREATE TABLE IF NOT EXISTS empresas (
 CREATE TABLE IF NOT EXISTS empleados (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
-    empresa_id VARCHAR(36) NOT NULL,
+    -- empresa_id VARCHAR(36) NOT NULL, -- ELIMINADO
+    nifdeMiEmpresa VARCHAR(20) NOT NULL, -- NUEVO CAMPO
     nombre VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
     dni VARCHAR(20) UNIQUE,
@@ -77,9 +77,14 @@ CREATE TABLE IF NOT EXISTS empleados (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    -- FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE, -- ELIMINADO
     FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL
 );
+
+-- Para migraciones en BDD ya existente, añade:
+-- ALTER TABLE empleados ADD COLUMN nifdeMiEmpresa VARCHAR(20) NOT NULL AFTER user_id;
+-- ALTER TABLE empleados DROP FOREIGN KEY empleados_ibfk_X; (donde X sea el número de la FK empresa_id)
+-- ALTER TABLE empleados DROP COLUMN empresa_id;
 
 -- Tabla para tokens de restablecimiento de contraseña
 CREATE TABLE IF NOT EXISTS reset_tokens (

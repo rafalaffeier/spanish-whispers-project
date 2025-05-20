@@ -1,5 +1,3 @@
-
-
 // Servicios para empleados
 import { Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
@@ -8,7 +6,6 @@ import { toast } from '@/hooks/use-toast';
 // Obtener todos los empleados
 export const getEmployees = async (): Promise<Employee[]> => {
   const data = await fetchWithAuth('/empleados');
-  // Mapear respuesta de API a formato de la aplicación
   return data.map((emp: any) => ({
     id: emp.id,
     userId: emp.user_id,
@@ -28,8 +25,7 @@ export const getEmployees = async (): Promise<Employee[]> => {
     address: emp.direccion,
     zipCode: emp.codigo_postal,
     phone: emp.telefono,
-    // NUEVO: Mapeamos el NIF de empresa correctamente
-    companyNif: emp.empresa_nif
+    nifdeMiEmpresa: emp.nifdeMiEmpresa
   }));
 };
 
@@ -43,7 +39,7 @@ export const getEmployee = async (id: string): Promise<Employee> => {
     email: data.email,
     avatar: data.avatar,
     role: data.rol_nombre || 'empleado',
-    isCompany: data.es_empresa || false, // Añadido isCompany
+    isCompany: data.es_empresa || false,
     firstName: data.nombre.split(' ')[0],
     lastName: data.apellidos,
     dni: data.dni,
@@ -54,7 +50,8 @@ export const getEmployee = async (id: string): Promise<Employee> => {
     city: data.ciudad,
     address: data.direccion,
     zipCode: data.codigo_postal,
-    phone: data.telefono
+    phone: data.telefono,
+    nifdeMiEmpresa: data.nifdeMiEmpresa
   };
 };
 

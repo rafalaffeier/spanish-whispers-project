@@ -8,8 +8,8 @@ export interface Employee {
   role: string;
   isCompany: boolean;
 
-  // NUEVO: NIF de la empresa a la que pertenece el empleado
-  companyNif?: string;
+  // Ahora solo usamos campo NIF de la empresa del empleado
+  nifdeMiEmpresa: string;
   
   // Campos adicionales para la interfaz de usuario
   email?: string;
