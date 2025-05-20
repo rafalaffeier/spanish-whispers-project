@@ -38,16 +38,4 @@ function getEmpleadosDeEmpresaAutenticada() {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getAuthenticatedUser() {
-    $headers = getallheaders();
-
-    if (!isset($headers['Authorization'])) {
-        return false;
-    }
-
-    $token = trim(str_replace('Bearer', '', $headers['Authorization']));
-    require_once __DIR__ . '/auth/utils.php';
-    
-    return validateAuthToken($token);
-}
 
