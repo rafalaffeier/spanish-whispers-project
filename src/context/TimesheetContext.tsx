@@ -31,6 +31,8 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
         // Verificar si hay un token válido en localStorage
         const token = localStorage.getItem('authToken');
+        console.log('[TimesheetContext] LocalStorage authToken:', token);
+
         if (!token) {
           console.log('[TimesheetContext] No auth token found');
           setCurrentEmployee(null);
@@ -40,16 +42,17 @@ export const TimesheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Intentar cargar el empleado actual desde localStorage
         const savedEmployee = localStorage.getItem('currentEmployee');
+        console.log('[TimesheetContext] LocalStorage currentEmployee:', savedEmployee);
+
         if (savedEmployee) {
           try {
             const employee = JSON.parse(savedEmployee);
-            console.log('[TimesheetContext] Found employee in localStorage:', employee);
-
-            // No es necesario normalizar employeeId (usar SIEMPRE id de Employee)
+            // 🚩 VERIFICAR QUE userId (token) está presente
+            console.log('[TimesheetContext] Found employee:', employee);
 
             setCurrentEmployee(employee);
 
-            // Si tenemos un empleado, cargar sus datos
+            // Cargar datos de empleados solo si es empleador
             if (employee && employee.id) {
               await loadEmployeeData(employee.id);
             }
