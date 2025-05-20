@@ -51,9 +51,11 @@ function getAuthenticatedUser() {
     }
     $authorization = $headers['Authorization'] ?? $headers['authorization'] ?? null;
     if (!$authorization) {
+        error_log('[getAuthenticatedUser] No Authorization header');
         return false;
     }
     if (strpos($authorization, 'Bearer ') !== 0) {
+        error_log('[getAuthenticatedUser] Authorization header without Bearer');
         return false;
     }
     $token = substr($authorization, 7);
@@ -66,6 +68,7 @@ function getAuthenticatedUser() {
         $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
         $stmt->execute([$token]);
         if ($stmt->rowCount() === 1) {
+            error_log('[getAuthenticatedUser] Auth OK by empleados.id');
             return $token;
         }
 
@@ -74,7 +77,10 @@ function getAuthenticatedUser() {
         $stmt2->execute([$token]);
         $row = $stmt2->fetch(PDO::FETCH_ASSOC);
         if ($row && isset($row['id'])) {
+            error_log('[getAuthenticatedUser] Auth OK by empleados.user_id, id real: ' . $row['id']);
             return $row['id']; // Devolvemos el id real del empleado
+        } else {
+            error_log('[getAuthenticatedUser] Token no coincide con empleados.user_id');
         }
     } catch (PDOException $e) {
         error_log('Error de autenticación (id/user_id): ' . $e->getMessage());
@@ -89,14 +95,18 @@ function getAuthenticatedUser() {
             $stmt = $db->prepare('SELECT id FROM empleados WHERE id = ? AND activo = 1');
             $stmt->execute([$userIdFromToken]);
             if ($stmt->rowCount() === 1) {
+                error_log('[getAuthenticatedUser] Auth OK by validateAuthToken/jwt id: ' . $userIdFromToken);
                 return $userIdFromToken;
             }
         } catch (PDOException $e) {
             error_log('Error de autenticación (token seguro): ' . $e->getMessage());
             return false;
         }
+    } else {
+        error_log('[getAuthenticatedUser] validateAuthToken también falló');
     }
 
+    error_log('[getAuthenticatedUser] Token NO autorizado');
     return false;
 }
 
