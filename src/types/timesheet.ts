@@ -7,6 +7,9 @@ export interface Employee {
   name: string;
   role: string;
   isCompany: boolean;
+
+  // NUEVO: NIF de la empresa a la que pertenece el empleado
+  companyNif?: string;
   
   // Campos adicionales para la interfaz de usuario
   email?: string;

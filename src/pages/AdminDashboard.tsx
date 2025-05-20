@@ -118,23 +118,12 @@ const AdminDashboard = () => {
   // Obtener datos del usuario actual
   const empresaDivision = currentEmployee?.division; // Asumimos que "division" agrupa a la empresa
 
-  // Obtener NIF asociado a la empresa del administrador (empleador)
-  // Suponemos campo 'companyNif', si no existe usar 'nif' o avisar
-  const empresaNif =
-    currentEmployee?.companyNif ||
-    currentEmployee?.nif ||
-    currentEmployee?.nifEmpresa ||
-    null;
+  // Obtener NIF de la empresa del administrador actual
+  const empresaNif = currentEmployee?.companyNif || null;
 
-  // Filtrar empleados: mostrar solo los que tengan el mismo NIF de empresa
-  // Suponemos que cada empleado tiene un campo companyNif o nifEmpresa
+  // Filtrar empleados sólo por mismo companyNif, usando la nueva propiedad
   const filteredEmployees = employees.filter(emp =>
-    !emp.isCompany &&
-    (
-      // Match por companyNif o por nifEmpresa (según el campo guardado en empleados)
-      emp.companyNif === empresaNif ||
-      emp.nifEmpresa === empresaNif
-    )
+    !emp.isCompany && emp.companyNif === empresaNif
   );
 
   // Obtener nombre del empleado seleccionado (para cabecera)
