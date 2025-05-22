@@ -100,6 +100,7 @@ const Login = () => {
     }
   }, [navigate]);
 
+  // Modificamos onSubmit sólo para mostrar más logs explícitos si hay duda de detección
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setLoginError(null);
@@ -116,16 +117,17 @@ const Login = () => {
         currentEmployee: employee,
         redirectionInfo: (employee as any)._debug_redirectionInfo || {},
       }));
-      setLastEmployee(employee); // para test manual/debug visual
+      setLastEmployee(employee);
 
-      addLog(`[TEST LOGIN] Redirección motivo: ${((employee as any)._debug_redirectionInfo?.DETECCION_MOTIVO) || "no info"}`);
+      // Log explícito de todos los campos brutos relevantes:
+      const deb = (employee as any)._debug_redirectionInfo || {};
+      addLog(`[TEST LOGIN] role_fields: ${JSON.stringify(deb.role_fields)} | razón: ${deb.DETECCION_MOTIVO}`);
 
       toast({
         title: "Inicio de sesión exitoso",
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
 
-      // --- REDIRECCIÓN: logs explícitos para debug manual ---
       if (
         employee.isCompany === true ||
         employee.role === "empleador" ||
@@ -258,6 +260,9 @@ const Login = () => {
           // Incrustamos el último "employee" recibido
           ultimoEmpleado: lastEmployee,
           redirectionDeteccionInfo: lastEmployee?._debug_redirectionInfo || {},
+          // Mostrar siempre datos crudos relevantes
+          camposRaw: lastEmployee?._debug_redirectionInfo?.role_fields || {},
+          motivoRedireccion: lastEmployee?._debug_redirectionInfo?.DETECCION_MOTIVO || ''
         }}
       />
     </div>

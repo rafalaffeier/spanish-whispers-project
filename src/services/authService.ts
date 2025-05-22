@@ -20,96 +20,80 @@ export const login = async (email: string, password: string): Promise<{
 
     console.log("[authService] Login API response:", response);
 
-    // Lógica MUY robusta para detectar si es empleador/admin/empresa
+    const userObj = response.user;
+
+    // Lógica mejorada para identificar empleador/admin, con fallback por email
     let isEmpleador = false;
     let userRole = "empleado";
     let DETECCION_MOTIVO = "Por defecto: ningún criterio matchea";
 
-    // Variantes que pueden llegar desde backend
+    const rolLower = String(userObj.rol ?? "").toLowerCase();
+    const roleLower = String(userObj.role ?? "").toLowerCase();
+
     if (
-      ["empleador", "admin", "Administrador"].includes(String(response.user.rol).toLowerCase()) ||
-      ["empleador", "admin", "Administrador"].includes(String(response.user.role).toLowerCase())
+      ["empleador", "admin", "administrador"].includes(rolLower) ||
+      ["empleador", "admin", "administrador"].includes(roleLower)
     ) {
       isEmpleador = true;
       userRole = "empleador";
       DETECCION_MOTIVO = "rol/role indica empleador/admin";
     } else if (
-      response.user.esEmpresa === true || response.user.is_company === true
+      userObj.esEmpresa === true || userObj.is_company === true
     ) {
       isEmpleador = true;
       userRole = "empleador";
       DETECCION_MOTIVO = "esEmpresa/is_company true";
+    } else if (
+      typeof userObj.email === "string" && (
+        userObj.email.includes("admin@") || userObj.email.includes("empleador@")
+      )
+    ) {
+      isEmpleador = true;
+      userRole = "empleador";
+      DETECCION_MOTIVO = "email incluye admin@ o empleador@, fallback";
     }
 
-    // Si el email incluye admin@ o employer@ también podrías forzar (debug)
-    // if (userObj.email && userObj.email.includes('admin@')) { ... }
+    // Creamos un objeto employee que guarda los campos crudos también para debug
+    const employee: Employee = {
+      id: userObj.id || '',
+      userId: userObj.id || '',
+      name: (userObj.nombre && userObj.nombre.trim() !== "" && userObj.nombre !== null) ? userObj.nombre : (userObj.email || 'Usuario'),
+      email: userObj.email || '',
+      avatar: userObj.avatar || '',
+      role: userRole,
+      isCompany: isEmpleador,
+      firstName: userObj.nombre?.split(' ')[0] || '',
+      lastName: userObj.apellidos || '',
+      dni: userObj.dni || userObj.nif || '',
+      department: userObj.departamento_nombre || '',
+      position: userObj.cargo || '',
+      division: userObj.division || '',
+      country: userObj.pais || '',
+      city: userObj.ciudad || '',
+      address: userObj.direccion || '',
+      zipCode: userObj.codigo_postal || '',
+      phone: userObj.telefono || '',
+      nifdeMiEmpresa: userObj.nifdeMiEmpresa || '',
+    };
 
-    if (response && response.token && response.user) {
-      localStorage.setItem('authToken', response.token);
-      setAuthToken(response.token);
+    // Guardar campos brutos de rol para depuración extrema
+    (employee as any)._debug_redirectionInfo = {
+      role_fields: {
+        rol: userObj.rol,
+        role: userObj.role,
+        esEmpresa: userObj.esEmpresa,
+        is_company: userObj.is_company,
+        email: userObj.email,
+      },
+      DETECCION_MOTIVO
+    };
 
-      const userObj = response.user;
+    localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
-      // Mejorar la detección de rol y flag de "empleador"
-      let isEmpleador = false;
-      let userRole = "empleado";
-
-      // Revisar distintas claves que puedan venir de la API o la base de datos
-      if (
-        userObj.rol === "empleador" ||
-        userObj.rol === "admin" ||
-        userObj.rol === "Administrador" ||
-        userObj.role === "empleador" ||
-        userObj.esEmpresa === true ||
-        userObj.is_company === true
-      ) {
-        isEmpleador = true;
-        userRole = "empleador";
-      }
-
-      // Armamos el objeto employee unificado
-      const employee: Employee = {
-        id: userObj.id || '',
-        userId: userObj.id || '',
-        name: (userObj.nombre && userObj.nombre.trim() !== "") ? userObj.nombre : (userObj.email || 'Usuario'),
-        email: userObj.email || '',
-        avatar: userObj.avatar || '',
-        role: userRole,
-        isCompany: isEmpleador,
-        firstName: userObj.nombre?.split(' ')[0] || '',
-        lastName: userObj.apellidos || '',
-        dni: userObj.dni || userObj.nif || '',
-        department: userObj.departamento_nombre || '',
-        position: userObj.cargo || '',
-        division: userObj.division || '',
-        country: userObj.pais || '',
-        city: userObj.ciudad || '',
-        address: userObj.direccion || '',
-        zipCode: userObj.codigo_postal || '',
-        phone: userObj.telefono || '',
-        nifdeMiEmpresa: userObj.nifdeMiEmpresa || '',
-      };
-
-      // Guardar el motivo de decisión de role para test/debug
-      (employee as any)._debug_redirectionInfo = {
-        role_fields: {
-          rol: userObj.rol,
-          role: userObj.role,
-          esEmpresa: userObj.esEmpresa,
-          is_company: userObj.is_company,
-        },
-        DETECCION_MOTIVO
-      };
-
-      localStorage.setItem('currentEmployee', JSON.stringify(employee));
-
-      return {
-        employee,
-        token: response.token
-      };
-    }
-
-    throw new Error('Credenciales inválidas');
+    return {
+      employee,
+      token: response.token
+    };
   } catch (error: any) {
     console.error('[authService] Error durante el login:', error);
     if (error.response) {
