@@ -128,30 +128,53 @@ const Login = () => {
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
 
-      // --- LÓGICA ROBUSTA PARA REDIRECCIÓN ---
-      // Detectar si debe ir a dashboard de ADMIN (empleador/empresa)
-      const adminMatch =
+      // --- LÓGICA DE REDIRECCIÓN REFORZADA ---
+      /**
+       * 1. Usar todos los campos posibles: isCompany, role, rol, rol_id, esEmpresa, is_company, email
+       * 2. Asumir "empleador" si cualquiera de sus formas coincide
+       * 3. Siempre dejar logs claros del motivo de la decisión
+       */
+      const campos = {
+        isCompany: employee.isCompany,
+        role: employee.role,
+        email: employee.email,
+        raw: (employee as any)._debug_redirectionInfo?.role_fields || {},
+        motivo: (employee as any)._debug_redirectionInfo?.DETECCION_MOTIVO || "",
+      };
+      addLog(`[REDIRECT CHECK] Campos usados para decisión: ${JSON.stringify(campos)}`);
+
+      const raw = campos.raw;
+
+      // Criterios admin/empleador robustos
+      const esAdmin =
         employee.isCompany === true ||
-        (typeof employee.isCompany === "string" && employee.isCompany === "true") ||
-        (typeof employee.role === "string" && [
-          'empleador',
-          'admin',
-          'administrador',
-          'company',
-          'empresa'
-        ].includes(employee.role.toLowerCase())) ||
-        // Workaround: si el email sugiere ser admin o empleador
+        employee.role?.toLowerCase() === "empleador" ||
+        employee.role?.toLowerCase() === "admin" ||
+        employee.role?.toLowerCase() === "administrador" ||
+        employee.role?.toLowerCase() === "company" ||
+        employee.role?.toLowerCase() === "empresa" ||
+        // Backward compatible: si los campos raw del backend indican admin
+        raw.isCompany === true ||
+        raw.esEmpresa === true ||
+        raw.rol === "empleador" ||
+        raw.role === "empleador" ||
+        raw.rol === "admin" ||
+        raw.role === "admin" ||
+        raw.rol === "administrador" ||
+        raw.role === "administrador" ||
+        raw.rol_id == 1 || raw.rol_id === "1" ||
+        // Heurística por email si el campo viene vacío
         (typeof employee.email === "string" && (
-          employee.email.includes('admin@') ||
-          employee.email.includes('empleador@') ||
-          employee.email.endsWith('@tudominio.com')
+          employee.email.includes("admin@") ||
+          employee.email.includes("empleador@") ||
+          employee.email.endsWith("@tudominio.com")
         ));
 
-      if (adminMatch) {
-        addLog("Redirecting to admin dashboard (empleador/admin/company/empresa)");
+      if (esAdmin) {
+        addLog("[REDIRECTION] Usuario detectado como ADMIN/EMPRESA → navegando a /admin");
         navigate("/admin", { replace: true });
       } else {
-        addLog("Redirecting to employee dashboard");
+        addLog("[REDIRECTION] Usuario detectado como EMPLEADO → navegando a /employee");
         navigate("/employee", { replace: true });
       }
     } catch (error) {
