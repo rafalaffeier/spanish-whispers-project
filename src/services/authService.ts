@@ -22,13 +22,15 @@ export const login = async (email: string, password: string): Promise<{
 
     const userObj = response.user;
 
-    // Lógica mejorada para identificar empleador/admin, con fallback por email
+    // Lógica mejorada para identificar empleador/admin, con fallback por email y rol_id
     let isEmpleador = false;
     let userRole = "empleado";
     let DETECCION_MOTIVO = "Por defecto: ningún criterio matchea";
 
     const rolLower = String(userObj.rol ?? "").toLowerCase();
     const roleLower = String(userObj.role ?? "").toLowerCase();
+    // NUEVO: Fallback usando rol_id
+    const rol_id = userObj.rol_id;
 
     if (
       ["empleador", "admin", "administrador"].includes(rolLower) ||
@@ -51,6 +53,12 @@ export const login = async (email: string, password: string): Promise<{
       isEmpleador = true;
       userRole = "empleador";
       DETECCION_MOTIVO = "email incluye admin@ o empleador@, fallback";
+    }
+    // Fallback nuevo: Si rol_id es 1, es empleador
+    else if (typeof rol_id !== "undefined" && (rol_id == 1 || rol_id === "1")) {
+      isEmpleador = true;
+      userRole = "empleador";
+      DETECCION_MOTIVO = "rol_id == 1 (empleador, fallback DB)";
     }
 
     // Creamos un objeto employee que guarda los campos crudos también para debug
@@ -80,6 +88,7 @@ export const login = async (email: string, password: string): Promise<{
     (employee as any)._debug_redirectionInfo = {
       role_fields: {
         rol: userObj.rol,
+        rol_id: userObj.rol_id,
         role: userObj.role,
         esEmpresa: userObj.esEmpresa,
         is_company: userObj.is_company,
