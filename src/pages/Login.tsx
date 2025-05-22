@@ -128,13 +128,27 @@ const Login = () => {
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
 
-      if (
+      // --- LÓGICA ROBUSTA PARA REDIRECCIÓN ---
+      // Detectar si debe ir a dashboard de ADMIN (empleador/empresa)
+      const adminMatch =
         employee.isCompany === true ||
-        employee.role === "empleador" ||
-        employee.role === "admin" ||
-        employee.role === "Administrador"
-      ) {
-        addLog("Redirecting to admin dashboard (empleador/admin)");
+        (typeof employee.isCompany === "string" && employee.isCompany === "true") ||
+        (typeof employee.role === "string" && [
+          'empleador',
+          'admin',
+          'administrador',
+          'company',
+          'empresa'
+        ].includes(employee.role.toLowerCase())) ||
+        // Workaround: si el email sugiere ser admin o empleador
+        (typeof employee.email === "string" && (
+          employee.email.includes('admin@') ||
+          employee.email.includes('empleador@') ||
+          employee.email.endsWith('@tudominio.com')
+        ));
+
+      if (adminMatch) {
+        addLog("Redirecting to admin dashboard (empleador/admin/company/empresa)");
         navigate("/admin", { replace: true });
       } else {
         addLog("Redirecting to employee dashboard");
