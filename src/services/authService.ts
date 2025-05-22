@@ -1,68 +1,67 @@
-// Servicios para autenticación y registro
 import { RegistrationData, PasswordResetRequest, PasswordResetConfirm, Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
 import { setAuthToken, API_BASE_URL } from './apiConfig';
 import { toast } from "sonner";
 
-// Función centralizada para detección de rol real de usuario
-function detectRoleFromUserObj(userObj: any) {
-  // Recopilar todos los campos a considerar
-  const rol = typeof userObj.rol === "string" ? userObj.rol : "";
-  const role = typeof userObj.role === "string" ? userObj.role : "";
-  const rol_id = typeof userObj.rol_id === "undefined" ? null : userObj.rol_id;
-  const email = typeof userObj.email === "string" ? userObj.email : "";
-  const esEmpresa = !!userObj.esEmpresa;
-  const is_company = !!userObj.is_company;
+/**
+ * Centraliza la detección correcta del rol del usuario según múltiples posibles fuentes.
+ * Retorna tanto el rol, si es empleador, motivo, y los datos brutos para debug.
+ */
+function resolveEmployeeRole(user: any) {
+  // Recolectamos todos los candidatos a campos de rol/empresa
+  const rol       = typeof user.rol === 'string'    ? user.rol.toLowerCase()    : '';
+  const role      = typeof user.role === 'string'   ? user.role.toLowerCase()   : '';
+  const rol_id    = user.rol_id !== undefined      ? user.rol_id               : null;
+  const esEmpresa = user.esEmpresa === true         || user.es_empresa === true;
+  const isCompany = user.is_company === true        || user.isCompany === true;
+  const email     = typeof user.email === 'string'  ? user.email                : '';
 
-  // Para debugging detallado
-  let motivo = "No matchea ningún criterio de empleador, es empleado";
-  let isEmpleador = false;
-  let userRole = "empleado";
-
-  // 1. rol_id === 1
-  if (rol_id == 1 || rol_id === "1") {
-    isEmpleador = true;
-    userRole = "empleador";
-    motivo = "rol_id == 1 detectado, es empleador (criterio dominante)";
+  // Prioridad de evaluación:
+  // 1. rol_id (si 1 o '1') predomina, luego texto en rol/role, luego flags empresa, luego email
+  if (rol_id == 1 || rol_id === '1') {
+    return {
+      role:        'empleador',
+      isCompany:   true,
+      reason:      "rol_id == 1 → empleador (prioridad máxima)",
+      raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
+    };
   }
-  // 2. rol ó role texto
-  else if (
-    ["empleador", "admin", "administrador"].includes(rol.toLowerCase()) ||
-    ["empleador", "admin", "administrador"].includes(role.toLowerCase())
-  ) {
-    isEmpleador = true;
-    userRole = "empleador";
-    motivo = "rol ó role tiene valor empleador/admin";
+  if (['empleador', 'admin', 'administrador'].includes(rol) || 
+      ['empleador', 'admin', 'administrador'].includes(role)) {
+    return {
+      role:        'empleador',
+      isCompany:   true,
+      reason:      "rol/role de texto → empleador/admin",
+      raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
+    };
   }
-  // 3. esEmpresa/is_company true
-  else if (esEmpresa === true || is_company === true) {
-    isEmpleador = true;
-    userRole = "empleador";
-    motivo = "Flag esEmpresa o is_company true";
+  if (esEmpresa || isCompany) {
+    return {
+      role:        'empleador',
+      isCompany:   true,
+      reason:      "Flag esEmpresa/is_company true",
+      raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
+    };
   }
-  // 4. email incluye admin@/empleador@
-  else if (email.includes("admin@") || email.includes("empleador@")) {
-    isEmpleador = true;
-    userRole = "empleador";
-    motivo = "Email incluye admin@ o empleador@";
+  if (email.includes('admin@') || email.includes('empleador@')) {
+    return {
+      role:        'empleador',
+      isCompany:   true,
+      reason:      'Email incluye admin@ o empleador@',
+      raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
+    };
   }
-  // 5. Fallback
-  else {
-    isEmpleador = false;
-    userRole = "empleado";
-    motivo = "No matchea ningún criterio de empleador, es empleado";
-  }
-
-  // Devuelvo info para depuración
+  // Fallback: empleado
   return {
-    isEmpleador,
-    userRole,
-    motivo,
-    raw: { rol, rol_id, role, esEmpresa, is_company, email }
+    role:        'empleado',
+    isCompany:   false,
+    reason:      "Ningún criterio de empleador, asignado como empleado",
+    raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
   };
 }
 
-// Función para iniciar sesión
+
+// ---- FUNCIÓN LOGIN ----
 export const login = async (email: string, password: string): Promise<{
   employee: Employee,
   token: string
@@ -78,42 +77,47 @@ export const login = async (email: string, password: string): Promise<{
 
     console.log("[authService] Login API response:", response);
 
-    const userObj = response.user;
+    const user = response.user;
 
-    // Usar función centralizada para detectar rol
-    const detectionResult = detectRoleFromUserObj(userObj);
-    const { isEmpleador, userRole, motivo, raw } = detectionResult;
+    // Nueva lógica: detección única del rol y motivo
+    const {
+      role,
+      isCompany,
+      reason,
+      raw
+    } = resolveEmployeeRole(user);
 
-    // Creamos un objeto employee y ajustamos role/isCompany según la detección universal
     const employee: Employee = {
-      id: userObj.id || '',
-      userId: userObj.id || '',
-      name: (userObj.nombre && userObj.nombre.trim() !== "" && userObj.nombre !== null) ? userObj.nombre : (userObj.email || 'Usuario'),
-      email: userObj.email || '',
-      avatar: userObj.avatar || '',
-      role: userRole,
-      isCompany: isEmpleador,
-      firstName: userObj.nombre?.split(' ')[0] || '',
-      lastName: userObj.apellidos || '',
-      dni: userObj.dni || userObj.nif || '',
-      department: userObj.departamento_nombre || '',
-      position: userObj.cargo || '',
-      division: userObj.division || '',
-      country: userObj.pais || '',
-      city: userObj.ciudad || '',
-      address: userObj.direccion || '',
-      zipCode: userObj.codigo_postal || '',
-      phone: userObj.telefono || '',
-      nifdeMiEmpresa: userObj.nifdeMiEmpresa || '',
+      id:         user.id        || '',
+      userId:     user.id        || '',
+      name:       (user.nombre && String(user.nombre).trim() !== "" && user.nombre !== null)
+                     ? user.nombre
+                     : (user.email || 'Usuario'),
+      email:      user.email     || '',
+      avatar:     user.avatar    || '',
+      role:       role,
+      isCompany:  isCompany,
+      firstName:  user.nombre?.split(' ')[0] || '',
+      lastName:   user.apellidos || '',
+      dni:        user.dni || user.nif || '',
+      department: user.departamento_nombre || '',
+      position:   user.cargo || '',
+      division:   user.division || '',
+      country:    user.pais || '',
+      city:       user.ciudad || '',
+      address:    user.direccion || '',
+      zipCode:    user.codigo_postal || '',
+      phone:      user.telefono || '',
+      nifdeMiEmpresa: user.nifdeMiEmpresa || '',
     };
 
-    // Guardar campos brutos de rol para depuración extrema
+    // Añadimos info extendida para depuración
     (employee as any)._debug_redirectionInfo = {
       role_fields: raw,
-      DETECCION_MOTIVO: motivo
+      DETECCION_MOTIVO: reason
     };
 
-    // Guardar en localStorage como antes
+    // Guardamos empleado para otros componentes/contextos
     localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
     return {
@@ -137,6 +141,8 @@ export const login = async (email: string, password: string): Promise<{
   }
 };
 
+
+// ---- REGISTRO Y RECUPERACIÓN DE CONTRASEÑA (sin tocar) ----
 export const register = async (data: RegistrationData): Promise<any> => {
   console.log("%c [REGISTRO] Iniciando registro", "background: #3498db; color: white; padding: 2px 5px; border-radius: 2px;");
   console.log("[REGISTRO] Datos completos:", JSON.stringify(data, null, 2));
@@ -277,7 +283,6 @@ export const register = async (data: RegistrationData): Promise<any> => {
   }
 };
 
-// Funciones para recuperación de contraseña
 export const requestPasswordReset = async (data: PasswordResetRequest): Promise<void> => {
   console.log("[authService] Requesting password reset for:", data.email);
   try {
