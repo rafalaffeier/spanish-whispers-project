@@ -4,6 +4,64 @@ import { fetchWithAuth } from './apiHelpers';
 import { setAuthToken, API_BASE_URL } from './apiConfig';
 import { toast } from "sonner";
 
+// Función centralizada para detección de rol real de usuario
+function detectRoleFromUserObj(userObj: any) {
+  // Recopilar todos los campos a considerar
+  const rol = typeof userObj.rol === "string" ? userObj.rol : "";
+  const role = typeof userObj.role === "string" ? userObj.role : "";
+  const rol_id = typeof userObj.rol_id === "undefined" ? null : userObj.rol_id;
+  const email = typeof userObj.email === "string" ? userObj.email : "";
+  const esEmpresa = !!userObj.esEmpresa;
+  const is_company = !!userObj.is_company;
+
+  // Para debugging detallado
+  let motivo = "No matchea ningún criterio de empleador, es empleado";
+  let isEmpleador = false;
+  let userRole = "empleado";
+
+  // 1. rol_id === 1
+  if (rol_id == 1 || rol_id === "1") {
+    isEmpleador = true;
+    userRole = "empleador";
+    motivo = "rol_id == 1 detectado, es empleador (criterio dominante)";
+  }
+  // 2. rol ó role texto
+  else if (
+    ["empleador", "admin", "administrador"].includes(rol.toLowerCase()) ||
+    ["empleador", "admin", "administrador"].includes(role.toLowerCase())
+  ) {
+    isEmpleador = true;
+    userRole = "empleador";
+    motivo = "rol ó role tiene valor empleador/admin";
+  }
+  // 3. esEmpresa/is_company true
+  else if (esEmpresa === true || is_company === true) {
+    isEmpleador = true;
+    userRole = "empleador";
+    motivo = "Flag esEmpresa o is_company true";
+  }
+  // 4. email incluye admin@/empleador@
+  else if (email.includes("admin@") || email.includes("empleador@")) {
+    isEmpleador = true;
+    userRole = "empleador";
+    motivo = "Email incluye admin@ o empleador@";
+  }
+  // 5. Fallback
+  else {
+    isEmpleador = false;
+    userRole = "empleado";
+    motivo = "No matchea ningún criterio de empleador, es empleado";
+  }
+
+  // Devuelvo info para depuración
+  return {
+    isEmpleador,
+    userRole,
+    motivo,
+    raw: { rol, rol_id, role, esEmpresa, is_company, email }
+  };
+}
+
 // Función para iniciar sesión
 export const login = async (email: string, password: string): Promise<{
   employee: Employee,
@@ -22,46 +80,11 @@ export const login = async (email: string, password: string): Promise<{
 
     const userObj = response.user;
 
-    // Lógica mejorada para identificar empleador/admin, con fallback por email y rol_id
-    let isEmpleador = false;
-    let userRole = "empleado";
-    let DETECCION_MOTIVO = "Por defecto: ningún criterio matchea";
+    // Usar función centralizada para detectar rol
+    const detectionResult = detectRoleFromUserObj(userObj);
+    const { isEmpleador, userRole, motivo, raw } = detectionResult;
 
-    const rolLower = String(userObj.rol ?? "").toLowerCase();
-    const roleLower = String(userObj.role ?? "").toLowerCase();
-    // NUEVO: Fallback usando rol_id
-    const rol_id = userObj.rol_id;
-
-    if (
-      ["empleador", "admin", "administrador"].includes(rolLower) ||
-      ["empleador", "admin", "administrador"].includes(roleLower)
-    ) {
-      isEmpleador = true;
-      userRole = "empleador";
-      DETECCION_MOTIVO = "rol/role indica empleador/admin";
-    } else if (
-      userObj.esEmpresa === true || userObj.is_company === true
-    ) {
-      isEmpleador = true;
-      userRole = "empleador";
-      DETECCION_MOTIVO = "esEmpresa/is_company true";
-    } else if (
-      typeof userObj.email === "string" && (
-        userObj.email.includes("admin@") || userObj.email.includes("empleador@")
-      )
-    ) {
-      isEmpleador = true;
-      userRole = "empleador";
-      DETECCION_MOTIVO = "email incluye admin@ o empleador@, fallback";
-    }
-    // Fallback nuevo: Si rol_id es 1, es empleador
-    else if (typeof rol_id !== "undefined" && (rol_id == 1 || rol_id === "1")) {
-      isEmpleador = true;
-      userRole = "empleador";
-      DETECCION_MOTIVO = "rol_id == 1 (empleador, fallback DB)";
-    }
-
-    // Creamos un objeto employee que guarda los campos crudos también para debug
+    // Creamos un objeto employee y ajustamos role/isCompany según la detección universal
     const employee: Employee = {
       id: userObj.id || '',
       userId: userObj.id || '',
@@ -86,17 +109,11 @@ export const login = async (email: string, password: string): Promise<{
 
     // Guardar campos brutos de rol para depuración extrema
     (employee as any)._debug_redirectionInfo = {
-      role_fields: {
-        rol: userObj.rol,
-        rol_id: userObj.rol_id,
-        role: userObj.role,
-        esEmpresa: userObj.esEmpresa,
-        is_company: userObj.is_company,
-        email: userObj.email,
-      },
-      DETECCION_MOTIVO
+      role_fields: raw,
+      DETECCION_MOTIVO: motivo
     };
 
+    // Guardar en localStorage como antes
     localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
     return {
