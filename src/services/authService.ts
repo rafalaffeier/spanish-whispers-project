@@ -1,4 +1,3 @@
-
 // Servicios para autenticación y registro
 import { RegistrationData, PasswordResetRequest, PasswordResetConfirm, Employee } from '@/types/timesheet';
 import { fetchWithAuth } from './apiHelpers';
@@ -21,24 +20,39 @@ export const login = async (email: string, password: string): Promise<{
 
     console.log("[authService] Login API response:", response);
 
-    // Cambiamos el mapeo para usar .user en vez de .empleado
-    // Si no viene user, lanzamos error explícito
+    // --- MEJORA: Detectar y normalizar el rol correctamente ---
     if (response && response.token && response.user) {
-      // Guardar token en localStorage primero para asegurar que está disponible
       localStorage.setItem('authToken', response.token);
       setAuthToken(response.token);
 
-      // Mapear respuesta a formato Employee
       const userObj = response.user;
 
+      // Mejorar la detección de rol y flag de "empleador"
+      let isEmpleador = false;
+      let userRole = "empleado";
+
+      // Revisar distintas claves que puedan venir de la API o la base de datos
+      if (
+        userObj.rol === "empleador" ||
+        userObj.rol === "admin" ||
+        userObj.rol === "Administrador" ||
+        userObj.role === "empleador" ||
+        userObj.esEmpresa === true ||
+        userObj.is_company === true
+      ) {
+        isEmpleador = true;
+        userRole = "empleador";
+      }
+
+      // Armamos el objeto employee unificado
       const employee: Employee = {
         id: userObj.id || '',
         userId: userObj.id || '',
-        name: userObj.nombre || userObj.email || 'Usuario',
+        name: (userObj.nombre && userObj.nombre.trim() !== "") ? userObj.nombre : (userObj.email || 'Usuario'),
         email: userObj.email || '',
         avatar: userObj.avatar || '',
-        role: userObj.rol || 'empleado',
-        isCompany: userObj.is_company || userObj.esEmpresa || false,
+        role: userRole,
+        isCompany: isEmpleador,
         firstName: userObj.nombre?.split(' ')[0] || '',
         lastName: userObj.apellidos || '',
         dni: userObj.dni || userObj.nif || '',
@@ -55,7 +69,6 @@ export const login = async (email: string, password: string): Promise<{
 
       console.log("[authService] Parsed employee data:", employee);
 
-      // Guardar el empleado en localStorage para recuperarlo al recargar
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
       return {
@@ -64,11 +77,9 @@ export const login = async (email: string, password: string): Promise<{
       };
     }
 
-    // Si la API devuelve sólo user pero no token, o viceversa
     throw new Error('Credenciales inválidas');
   } catch (error: any) {
     console.error('[authService] Error durante el login:', error);
-
     if (error.response) {
       console.error('[authService] Error response:', error.response);
     }

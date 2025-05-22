@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -111,7 +110,6 @@ const Login = () => {
       
       const { employee } = response;
       
-      // Actualizar el contexto con el empleado
       setCurrentEmployee(employee);
       setDebugData(prev => ({
         ...prev,
@@ -125,8 +123,14 @@ const Login = () => {
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
       
-      // Redirigir según el rol del usuario
-      if (employee.isCompany || employee.role === 'empleador') {
+      // --- REDIRECCIÓN CORREGIDA ---
+      // Detalla explícitamente cuándo enviar a /admin o /employee
+      if (
+        employee.isCompany === true ||
+        employee.role === "empleador" ||
+        employee.role === "admin" || 
+        employee.role === "Administrador"
+      ) {
         addLog("Redirecting to admin dashboard");
         navigate("/admin", { replace: true });
       } else {
