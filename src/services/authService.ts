@@ -17,12 +17,11 @@ function resolveEmployeeRole(user: any) {
   const email     = typeof user.email === 'string'  ? user.email                : '';
 
   // Prioridad de evaluación:
-  // 1. rol_id (si 1 o '1') predomina, luego texto en rol/role, luego flags empresa, luego email
   if (rol_id == 1 || rol_id === '1') {
     return {
       role:        'empleador',
       isCompany:   true,
-      reason:      "rol_id == 1 → empleador (prioridad máxima)",
+      reason:      "rol_id == 1 → empleador (PRIORIDAD MÁXIMA)",
       raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
     };
   }
@@ -31,7 +30,7 @@ function resolveEmployeeRole(user: any) {
     return {
       role:        'empleador',
       isCompany:   true,
-      reason:      "rol/role de texto → empleador/admin",
+      reason:      "rol/role texto → empleador/admin",
       raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
     };
   }
@@ -43,11 +42,17 @@ function resolveEmployeeRole(user: any) {
       raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
     };
   }
-  if (email.includes('admin@') || email.includes('empleador@')) {
+  // Workaround: patron de admin por email
+  if (
+    typeof email === 'string' &&
+    (email.includes('admin@') ||
+     email.includes('empleador@') ||
+     email.endsWith('@tudominio.com'))
+  ) {
     return {
       role:        'empleador',
       isCompany:   true,
-      reason:      'Email incluye admin@ o empleador@',
+      reason:      'Workaround por email (contiene admin@, empleador@ o tu dominio)',
       raw:         { rol, role, rol_id, esEmpresa, isCompany, email }
     };
   }
@@ -79,7 +84,7 @@ export const login = async (email: string, password: string): Promise<{
 
     const user = response.user;
 
-    // Nueva lógica: detección única del rol y motivo
+    // Aplicar lógica mejorada: detección única del rol
     const {
       role,
       isCompany,
@@ -87,6 +92,7 @@ export const login = async (email: string, password: string): Promise<{
       raw
     } = resolveEmployeeRole(user);
 
+    // Almacenar para el front
     const employee: Employee = {
       id:         user.id        || '',
       userId:     user.id        || '',
@@ -111,14 +117,17 @@ export const login = async (email: string, password: string): Promise<{
       nifdeMiEmpresa: user.nifdeMiEmpresa || '',
     };
 
-    // Añadimos info extendida para depuración
+    // Info de debug transparente para el DebugPanel y logs
     (employee as any)._debug_redirectionInfo = {
       role_fields: raw,
       DETECCION_MOTIVO: reason
     };
+    console.log("[authService] Detección de rol:", reason, raw);
 
-    // Guardamos empleado para otros componentes/contextos
+    // Guardar empleado en localStorage (para otros componentes/contextos)
     localStorage.setItem('currentEmployee', JSON.stringify(employee));
+    // Guardar token explícitamente también para la API
+    localStorage.setItem('authToken', response.token);
 
     return {
       employee,
