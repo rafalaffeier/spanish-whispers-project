@@ -164,6 +164,14 @@ const EmployeeDashboard = () => {
   // Eliminamos TODOS los addLog fuera de hooks/eventos, pues causan bucles infinitos.
   // --------------------------------------------------------
 
+  // NUEVO: fallback para iniciales de avatar y nombre nulo
+  const employeeNameDisplay = currentEmployee.name || currentEmployee.email || "Sin nombre";
+  const employeeInitial = currentEmployee.name && typeof currentEmployee.name === "string"
+    ? currentEmployee.name.charAt(0)
+    : (currentEmployee.email && typeof currentEmployee.email === "string"
+      ? currentEmployee.email.charAt(0)
+      : "?");
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header con botón de configuración y logout */}
@@ -192,11 +200,11 @@ const EmployeeDashboard = () => {
           <Avatar className="h-32 w-32 mb-4">
             <AvatarImage 
               src={currentEmployee.avatar || "/lovable-uploads/7cbe0d8f-8606-47a9-90f0-6e26f18cf47c.png"} 
-              alt={currentEmployee.name} 
+              alt={employeeNameDisplay} 
             />
-            <AvatarFallback>{currentEmployee.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{employeeInitial}</AvatarFallback>
           </Avatar>
-          <h1 className="text-3xl font-light text-gray-600 text-center">{currentEmployee.name}</h1>
+          <h1 className="text-3xl font-light text-gray-600 text-center">{employeeNameDisplay}</h1>
         </div>
 
         {/* Fecha de la jornada */}
