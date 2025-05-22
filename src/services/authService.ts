@@ -12,10 +12,8 @@ export const login = async (email: string, password: string): Promise<{
 }> => {
   try {
     console.log("[authService] Login attempt for:", email);
-    
-    // Depuración adicional
     console.log("[authService] API Base URL:", API_BASE_URL);
-    
+
     const response = await fetchWithAuth('/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -23,42 +21,57 @@ export const login = async (email: string, password: string): Promise<{
 
     console.log("[authService] Login API response:", response);
 
-    if (response && response.token) {
+    // Cambiamos el mapeo para usar .user en vez de .empleado
+    // Si no viene user, lanzamos error explícito
+    if (response && response.token && response.user) {
       // Guardar token en localStorage primero para asegurar que está disponible
       localStorage.setItem('authToken', response.token);
       setAuthToken(response.token);
-      
+
       // Mapear respuesta a formato Employee
+      const userObj = response.user;
+
       const employee: Employee = {
-        id: response.empleado.id || '',
-        userId: response.empleado.userId || '',
-        name: response.empleado.nombre || 'Usuario',
-        role: response.empleado.rol || 'empleado',
-        isCompany: response.empleado.esEmpresa || false,
-        nifdeMiEmpresa: response.empleado.nifdeMiEmpresa || '', // AÑADIDO: poner string vacío si no viene
+        id: userObj.id || '',
+        userId: userObj.id || '',
+        name: userObj.nombre || userObj.email || 'Usuario',
+        email: userObj.email || '',
+        avatar: userObj.avatar || '',
+        role: userObj.rol || 'empleado',
+        isCompany: userObj.is_company || userObj.esEmpresa || false,
+        firstName: userObj.nombre?.split(' ')[0] || '',
+        lastName: userObj.apellidos || '',
+        dni: userObj.dni || userObj.nif || '',
+        department: userObj.departamento_nombre || '',
+        position: userObj.cargo || '',
+        division: userObj.division || '',
+        country: userObj.pais || '',
+        city: userObj.ciudad || '',
+        address: userObj.direccion || '',
+        zipCode: userObj.codigo_postal || '',
+        phone: userObj.telefono || '',
+        nifdeMiEmpresa: userObj.nifdeMiEmpresa || '',
       };
 
       console.log("[authService] Parsed employee data:", employee);
 
       // Guardar el empleado en localStorage para recuperarlo al recargar
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
-      
+
       return {
         employee,
         token: response.token
       };
     }
 
+    // Si la API devuelve sólo user pero no token, o viceversa
     throw new Error('Credenciales inválidas');
   } catch (error: any) {
     console.error('[authService] Error durante el login:', error);
-    
-    // Depuración adicional - mostrar más detalles del error
+
     if (error.response) {
       console.error('[authService] Error response:', error.response);
     }
-    
-    // Mejorar detección y manejo de errores
     if (error.error) {
       throw new Error(error.error);
     } else if (error.message && typeof error.message === 'string') {
