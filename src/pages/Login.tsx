@@ -42,6 +42,7 @@ const Login = () => {
   const { setCurrentEmployee } = useTimesheet();
   const [debugData, setDebugData] = useState({});
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [lastEmployee, setLastEmployee] = useState<any>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -102,36 +103,36 @@ const Login = () => {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setLoginError(null);
-    
+
     try {
       addLog(`Iniciando login con email: ${data.email}`);
       const response = await login(data.email, data.password);
       addLog(`Login successful, response: ${JSON.stringify(response)}`);
-      
+
       const { employee } = response;
-      
       setCurrentEmployee(employee);
       setDebugData(prev => ({
         ...prev,
-        currentEmployee: employee
+        currentEmployee: employee,
+        redirectionInfo: (employee as any)._debug_redirectionInfo || {},
       }));
-      
-      addLog(`Login successful, employee data: ${JSON.stringify(employee)}`);
-      
+      setLastEmployee(employee); // para test manual/debug visual
+
+      addLog(`[TEST LOGIN] Redirección motivo: ${((employee as any)._debug_redirectionInfo?.DETECCION_MOTIVO) || "no info"}`);
+
       toast({
         title: "Inicio de sesión exitoso",
         description: `¡Bienvenido/a, ${employee.name}!`,
       });
-      
-      // --- REDIRECCIÓN CORREGIDA ---
-      // Detalla explícitamente cuándo enviar a /admin o /employee
+
+      // --- REDIRECCIÓN: logs explícitos para debug manual ---
       if (
         employee.isCompany === true ||
         employee.role === "empleador" ||
-        employee.role === "admin" || 
+        employee.role === "admin" ||
         employee.role === "Administrador"
       ) {
-        addLog("Redirecting to admin dashboard");
+        addLog("Redirecting to admin dashboard (empleador/admin)");
         navigate("/admin", { replace: true });
       } else {
         addLog("Redirecting to employee dashboard");
@@ -248,10 +249,16 @@ const Login = () => {
           </CardFooter>
         </Card>
       </div>
-      
+
+      {/* PANEL DE DEPURACIÓN (visualización) */}
       <DebugPanel 
-        title="Login Debug" 
-        data={debugData} 
+        title="Login Debug"
+        data={{
+          ...debugData,
+          // Incrustamos el último "employee" recibido
+          ultimoEmpleado: lastEmployee,
+          redirectionDeteccionInfo: lastEmployee?._debug_redirectionInfo || {},
+        }}
       />
     </div>
   );

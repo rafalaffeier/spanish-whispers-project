@@ -20,7 +20,30 @@ export const login = async (email: string, password: string): Promise<{
 
     console.log("[authService] Login API response:", response);
 
-    // --- MEJORA: Detectar y normalizar el rol correctamente ---
+    // Lógica MUY robusta para detectar si es empleador/admin/empresa
+    let isEmpleador = false;
+    let userRole = "empleado";
+    let DETECCION_MOTIVO = "Por defecto: ningún criterio matchea";
+
+    // Variantes que pueden llegar desde backend
+    if (
+      ["empleador", "admin", "Administrador"].includes(String(response.user.rol).toLowerCase()) ||
+      ["empleador", "admin", "Administrador"].includes(String(response.user.role).toLowerCase())
+    ) {
+      isEmpleador = true;
+      userRole = "empleador";
+      DETECCION_MOTIVO = "rol/role indica empleador/admin";
+    } else if (
+      response.user.esEmpresa === true || response.user.is_company === true
+    ) {
+      isEmpleador = true;
+      userRole = "empleador";
+      DETECCION_MOTIVO = "esEmpresa/is_company true";
+    }
+
+    // Si el email incluye admin@ o employer@ también podrías forzar (debug)
+    // if (userObj.email && userObj.email.includes('admin@')) { ... }
+
     if (response && response.token && response.user) {
       localStorage.setItem('authToken', response.token);
       setAuthToken(response.token);
@@ -67,7 +90,16 @@ export const login = async (email: string, password: string): Promise<{
         nifdeMiEmpresa: userObj.nifdeMiEmpresa || '',
       };
 
-      console.log("[authService] Parsed employee data:", employee);
+      // Guardar el motivo de decisión de role para test/debug
+      (employee as any)._debug_redirectionInfo = {
+        role_fields: {
+          rol: userObj.rol,
+          role: userObj.role,
+          esEmpresa: userObj.esEmpresa,
+          is_company: userObj.is_company,
+        },
+        DETECCION_MOTIVO
+      };
 
       localStorage.setItem('currentEmployee', JSON.stringify(employee));
 
